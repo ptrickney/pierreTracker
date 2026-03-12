@@ -1,0 +1,125 @@
+"use client";
+
+import { Clock, Baby, Moon, Droplets } from "lucide-react";
+import type { LogRow } from "@/types/log";
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+function LastFeedCard({ logs }: { logs: LogRow[] }) {
+  const feeds = logs.filter((l) => l.action_type === "feed");
+  const lastFeed = feeds.length > 0 ? feeds[0] : null;
+  return (
+    <div className="rounded-xl bg-blue-500 p-4 text-white shadow-sm md:col-span-1">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-400">
+          <Clock className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium uppercase tracking-wide opacity-90">
+            Last Feed
+          </p>
+          {lastFeed ? (
+            <>
+              <p className="text-xl font-bold">{formatTime(lastFeed.timestamp)}</p>
+              <p className="text-sm opacity-90">
+                {lastFeed.amount} {lastFeed.unit}
+              </p>
+            </>
+          ) : (
+            <p className="text-xl font-bold">—</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  unit,
+  icon: Icon,
+  iconBg,
+  iconColor,
+}: {
+  label: string;
+  value: string | number;
+  unit: string;
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconBg}`}
+        >
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            {label}
+          </p>
+          <p className="text-xl font-bold text-gray-900">
+            {value}
+            <span className="ml-1 text-sm font-normal text-gray-500">
+              {unit}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function TodaySummary({ logs }: { logs: LogRow[] }) {
+  const feeds = logs.filter((l) => l.action_type === "feed");
+  const sleep = logs.filter((l) => l.action_type === "sleep");
+  const diapers = logs.filter((l) => l.action_type === "diaper");
+  const fedTotal = feeds.reduce((s, l) => s + Number(l.amount), 0);
+  const sleptTotal = sleep.reduce((s, l) => s + Number(l.amount), 0);
+  const unitFeed = feeds[0]?.unit ?? "oz";
+  const unitSleep = sleep[0]?.unit ?? "hrs";
+
+  return (
+    <section>
+      <h2 className="mb-3 text-lg font-semibold text-gray-900">
+        Today&apos;s Summary
+      </h2>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <LastFeedCard logs={logs} />
+        <StatCard
+          label="Fed Today"
+          value={fedTotal || "0"}
+          unit={unitFeed}
+          icon={Baby}
+          iconBg="bg-blue-100"
+          iconColor="text-blue-600"
+        />
+        <StatCard
+          label="Slept Today"
+          value={sleptTotal || "0"}
+          unit={unitSleep}
+          icon={Moon}
+          iconBg="bg-purple-100"
+          iconColor="text-purple-600"
+        />
+        <StatCard
+          label="Diapers Today"
+          value={diapers.length || "0"}
+          unit="chgs"
+          icon={Droplets}
+          iconBg="bg-green-100"
+          iconColor="text-green-600"
+        />
+      </div>
+    </section>
+  );
+}
