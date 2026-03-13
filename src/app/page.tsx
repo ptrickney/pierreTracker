@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Baby } from "lucide-react";
+import ActivityLogger from "@/components/ActivityLogger";
 import TodaySummary from "@/components/TodaySummary";
 import RecentActivity from "@/components/RecentActivity";
 import FeedingTrendChart from "@/components/FeedingTrendChart";
@@ -31,6 +32,18 @@ export default function Home() {
   const [recentLogs, setRecentLogs] = useState<LogRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const refetch = () => {
+    Promise.all([fetchTodayLogs(), fetchLastFeed(), fetchRecentLogs()])
+      .then(([todayData, lastFeedData, recentData]) => {
+        setLogs(todayData);
+        setLastFeed(lastFeedData);
+        setRecentLogs(recentData);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "Failed to load data");
+      });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -83,6 +96,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-8">
+            <ActivityLogger onLogSaved={refetch} />
             <TodaySummary logs={logs ?? []} lastFeed={lastFeed} />
             <FeedingTrendChart />
             <RecentActivity recentLogs={recentLogs ?? []} />

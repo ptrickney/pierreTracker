@@ -1,6 +1,37 @@
 import { getSupabase } from "./supabase";
 import type { LogRow } from "@/types/log";
 
+/** Builds an ISO timestamp for a given date and "HH:MM" (24h) time in local timezone. */
+export function buildTimestamp(date: Date, timeHHMM: string): string {
+  const [hours, minutes] = timeHHMM.split(":").map(Number);
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes, 0, 0);
+  return d.toISOString();
+}
+
+export type InsertLogParams = {
+  action_type: LogRow["action_type"];
+  amount: number;
+  unit: string;
+  details?: string | null;
+  timestamp: string;
+};
+
+export async function insertLog(params: InsertLogParams): Promise<LogRow> {
+  const { data, error } = await getSupabase()
+    .from("logs")
+    .insert({
+      action_type: params.action_type,
+      amount: params.amount,
+      unit: params.unit,
+      details: params.details ?? null,
+      timestamp: params.timestamp,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as LogRow;
+}
+
 function getTodayBoundsUTC(): { start: string; end: string } {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
