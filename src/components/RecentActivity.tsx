@@ -3,8 +3,12 @@
 import EventRow from "./EventRow";
 import type { LogRow } from "@/types/log";
 
-export default function RecentActivity({ logs }: { logs: LogRow[] }) {
-  const sorted = [...logs].sort(
+export default function RecentActivity({
+  recentLogs,
+}: {
+  recentLogs: LogRow[];
+}) {
+  const sorted = [...recentLogs].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
@@ -16,7 +20,7 @@ export default function RecentActivity({ logs }: { logs: LogRow[] }) {
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         {sorted.length === 0 ? (
           <p className="py-8 text-center text-gray-500">
-            No events recorded today
+            No recent events
           </p>
         ) : (
           <div className="divide-y divide-gray-100 px-4">

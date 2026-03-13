@@ -31,6 +31,29 @@ export async function fetchTodayLogs(): Promise<LogRow[]> {
   return (data ?? []) as LogRow[];
 }
 
+export async function fetchLastFeed(): Promise<LogRow | null> {
+  const { data, error } = await getSupabase()
+    .from("logs")
+    .select("*")
+    .eq("action_type", "feed")
+    .order("timestamp", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return (data?.[0] as LogRow) ?? null;
+}
+
+export async function fetchRecentLogs(
+  limit: number = 20
+): Promise<LogRow[]> {
+  const { data, error } = await getSupabase()
+    .from("logs")
+    .select("*")
+    .order("timestamp", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as LogRow[];
+}
+
 export async function fetchLast7DaysFeedLogs(): Promise<LogRow[]> {
   const start = getSevenDaysAgoUTC();
   const { data, error } = await getSupabase()

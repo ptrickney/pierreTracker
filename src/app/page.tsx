@@ -5,7 +5,7 @@ import { Baby } from "lucide-react";
 import TodaySummary from "@/components/TodaySummary";
 import RecentActivity from "@/components/RecentActivity";
 import FeedingTrendChart from "@/components/FeedingTrendChart";
-import { fetchTodayLogs } from "@/lib/queries";
+import { fetchTodayLogs, fetchLastFeed, fetchRecentLogs } from "@/lib/queries";
 import type { LogRow } from "@/types/log";
 
 function formatDate(date: Date): string {
@@ -27,6 +27,8 @@ function SectionSkeleton() {
 
 export default function Home() {
   const [logs, setLogs] = useState<LogRow[] | null>(null);
+  const [lastFeed, setLastFeed] = useState<LogRow | null>(null);
+  const [recentLogs, setRecentLogs] = useState<LogRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,13 +36,17 @@ export default function Home() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchTodayLogs()
-      .then((data) => {
-        if (!cancelled) setLogs(data);
+    Promise.all([fetchTodayLogs(), fetchLastFeed(), fetchRecentLogs()])
+      .then(([todayData, lastFeedData, recentData]) => {
+        if (!cancelled) {
+          setLogs(todayData);
+          setLastFeed(lastFeedData);
+          setRecentLogs(recentData);
+        }
       })
       .catch((e) => {
         if (!cancelled)
-          setError(e instanceof Error ? e.message : "Failed to load today's data");
+          setError(e instanceof Error ? e.message : "Failed to load data");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -77,9 +83,9 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-8">
-            <TodaySummary logs={logs ?? []} />
+            <TodaySummary logs={logs ?? []} lastFeed={lastFeed} />
             <FeedingTrendChart />
-            <RecentActivity logs={logs ?? []} />
+            <RecentActivity recentLogs={recentLogs ?? []} />
           </div>
         )}
       </div>
