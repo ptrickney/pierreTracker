@@ -62,6 +62,8 @@ The four summary cards SHALL use a responsive layout:
 - **Desktop (md and above)**: 2-column, 2-row grid. Last Feed card (top-left, highlighted blue), Fed Today (top-right), Slept Today (bottom-left), Diapers Today (bottom-right).
 - **Mobile (below md)**: Single-column vertical stack. Last Feed card (full-width, top), then Fed Today, Slept Today, Diapers Today stacked below.
 
+The "Log Activity" accordion SHALL be placed above the Today's Summary section, between the page header and the summary cards. The summary cards layout itself is unchanged.
+
 Each card (except Last Feed) has a light background with a colored icon matching its type. The Last Feed card is visually dominant with a solid blue background and white text. On mobile, each card spans the full width.
 
 #### Scenario: Desktop grid layout
@@ -73,6 +75,11 @@ Each card (except Last Feed) has a light background with a colored icon matching
 
 - **WHEN** the Today's Summary section renders on a screen width < 768px
 - **THEN** the four cards are displayed in a single vertical column, full-width, with the Last Feed card on top
+
+#### Scenario: Log Activity accordion placement
+
+- **WHEN** the dashboard renders
+- **THEN** the "LOG ACTIVITY" accordion appears between the page header and the Today's Summary cards
 
 ### Requirement: Each stat card has a distinct icon and color
 
