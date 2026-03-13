@@ -15,12 +15,26 @@ const COLORS = {
   diaper: "bg-green-100 text-green-600",
 } as const;
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", {
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
+function formatEventTime(iso: string): string {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
+  if (isToday(iso)) return time;
+  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${date}, ${time}`;
 }
 
 export default function EventRow({ log }: { log: LogRow }) {
@@ -46,7 +60,7 @@ export default function EventRow({ log }: { log: LogRow }) {
       </div>
       <div className="flex shrink-0 items-center gap-1.5 text-sm text-gray-500">
         <Clock className="h-4 w-4" />
-        {formatTime(log.timestamp)}
+        {formatEventTime(log.timestamp)}
       </div>
     </div>
   );

@@ -3,17 +3,29 @@
 import { Clock, Baby, Moon, Droplets } from "lucide-react";
 import type { LogRow } from "@/types/log";
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", {
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
+function formatFeedTime(iso: string): string {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
+  if (isToday(iso)) return time;
+  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${date}, ${time}`;
 }
 
-function LastFeedCard({ logs }: { logs: LogRow[] }) {
-  const feeds = logs.filter((l) => l.action_type === "feed");
-  const lastFeed = feeds.length > 0 ? feeds[0] : null;
+function LastFeedCard({ lastFeed }: { lastFeed: LogRow | null }) {
   return (
     <div className="rounded-xl bg-blue-500 p-4 text-white shadow-sm md:col-span-1">
       <div className="flex items-center gap-3">
@@ -26,7 +38,7 @@ function LastFeedCard({ logs }: { logs: LogRow[] }) {
           </p>
           {lastFeed ? (
             <>
-              <p className="text-xl font-bold">{formatTime(lastFeed.timestamp)}</p>
+              <p className="text-xl font-bold">{formatFeedTime(lastFeed.timestamp)}</p>
               <p className="text-sm opacity-90">
                 {lastFeed.amount} {lastFeed.unit}
               </p>
@@ -79,7 +91,13 @@ function StatCard({
   );
 }
 
-export default function TodaySummary({ logs }: { logs: LogRow[] }) {
+export default function TodaySummary({
+  logs,
+  lastFeed,
+}: {
+  logs: LogRow[];
+  lastFeed: LogRow | null;
+}) {
   const feeds = logs.filter((l) => l.action_type === "feed");
   const sleep = logs.filter((l) => l.action_type === "sleep");
   const diapers = logs.filter((l) => l.action_type === "diaper");
@@ -94,7 +112,7 @@ export default function TodaySummary({ logs }: { logs: LogRow[] }) {
         Today&apos;s Summary
       </h2>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <LastFeedCard logs={logs} />
+        <LastFeedCard lastFeed={lastFeed} />
         <StatCard
           label="Fed Today"
           value={fedTotal || "0"}
