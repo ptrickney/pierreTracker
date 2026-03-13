@@ -1,16 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import EventRow from "./EventRow";
 import type { LogRow } from "@/types/log";
 
 export default function RecentActivity({
   recentLogs,
+  onDelete,
 }: {
   recentLogs: LogRow[];
+  onDelete?: (id: string) => Promise<void>;
 }) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const sorted = [...recentLogs].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
+
+  const handleDelete = async (id: string) => {
+    if (!onDelete) return;
+    setDeletingId(id);
+    try {
+      await onDelete(id);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <section>
@@ -25,7 +39,12 @@ export default function RecentActivity({
         ) : (
           <div className="divide-y divide-gray-100 px-4">
             {sorted.map((log) => (
-              <EventRow key={log.id} log={log} />
+              <EventRow
+                key={log.id}
+                log={log}
+                onDelete={onDelete ? handleDelete : undefined}
+                deleting={deletingId === log.id}
+              />
             ))}
           </div>
         )}

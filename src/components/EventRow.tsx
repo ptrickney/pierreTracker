@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Baby, Moon, Droplets } from "lucide-react";
+import { Clock, Baby, Moon, Droplets, Trash2, Loader2 } from "lucide-react";
 import type { LogRow } from "@/types/log";
 
 const ICONS = {
@@ -37,7 +37,15 @@ function formatEventTime(iso: string): string {
   return `${date}, ${time}`;
 }
 
-export default function EventRow({ log }: { log: LogRow }) {
+export default function EventRow({
+  log,
+  onDelete,
+  deleting = false,
+}: {
+  log: LogRow;
+  onDelete?: (id: string) => Promise<void>;
+  deleting?: boolean;
+}) {
   const Icon = ICONS[log.action_type];
   const color = COLORS[log.action_type];
   const typeLabel =
@@ -46,6 +54,10 @@ export default function EventRow({ log }: { log: LogRow }) {
   const detailLine = log.details
     ? `${amountUnit} | ${log.details}`
     : amountUnit;
+
+  const handleDelete = () => {
+    if (onDelete && !deleting) onDelete(log.id);
+  };
 
   return (
     <div className="flex items-start gap-3 border-b border-gray-100 py-3 last:border-b-0">
@@ -62,6 +74,21 @@ export default function EventRow({ log }: { log: LogRow }) {
         <Clock className="h-4 w-4" />
         {formatEventTime(log.timestamp)}
       </div>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="flex h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 items-center justify-center rounded-md text-gray-400 outline outline-1 outline-gray-300 hover:bg-gray-50 hover:text-gray-600 disabled:opacity-50"
+          aria-label="Delete activity"
+        >
+          {deleting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+        </button>
+      )}
     </div>
   );
 }

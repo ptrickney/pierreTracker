@@ -6,7 +6,7 @@ import ActivityLogger from "@/components/ActivityLogger";
 import TodaySummary from "@/components/TodaySummary";
 import RecentActivity from "@/components/RecentActivity";
 import FeedingTrendChart from "@/components/FeedingTrendChart";
-import { fetchTodayLogs, fetchLastFeed, fetchRecentLogs } from "@/lib/queries";
+import { fetchTodayLogs, fetchLastFeed, fetchRecentLogs, deleteLog } from "@/lib/queries";
 import type { LogRow } from "@/types/log";
 
 function formatDate(date: Date): string {
@@ -43,6 +43,16 @@ export default function Home() {
       .catch((e) => {
         setError(e instanceof Error ? e.message : "Failed to load data");
       });
+  };
+
+  const handleDeleteActivity = async (id: string) => {
+    try {
+      await deleteLog(id);
+      setError(null);
+      refetch();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete activity");
+    }
   };
 
   useEffect(() => {
@@ -99,7 +109,7 @@ export default function Home() {
             <ActivityLogger onLogSaved={refetch} />
             <TodaySummary logs={logs ?? []} lastFeed={lastFeed} />
             <FeedingTrendChart />
-            <RecentActivity recentLogs={recentLogs ?? []} />
+            <RecentActivity recentLogs={recentLogs ?? []} onDelete={handleDeleteActivity} />
           </div>
         )}
       </div>

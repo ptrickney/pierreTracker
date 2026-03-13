@@ -32,6 +32,14 @@ export async function insertLog(params: InsertLogParams): Promise<LogRow> {
   return data as LogRow;
 }
 
+export async function deleteLog(id: string): Promise<void> {
+  const { error } = await getSupabase()
+    .from("logs")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
 function getTodayBoundsUTC(): { start: string; end: string } {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
