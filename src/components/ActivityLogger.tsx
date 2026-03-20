@@ -7,6 +7,7 @@ import {
   getDefaultEventTime,
   generateTimeOptions,
 } from "@/lib/timeUtils";
+import DirtyDiaperCelebration from "@/components/DirtyDiaperCelebration";
 
 const FEED_MIN = 0;
 const FEED_MAX = 500;
@@ -25,6 +26,8 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
   const [feedAmount, setFeedAmount] = useState(FEED_DEFAULT);
   const [feedSubmitting, setFeedSubmitting] = useState(false);
   const [diaperSubmitting, setDiaperSubmitting] = useState(false);
+  const [dirtyCelebration, setDirtyCelebration] = useState(false);
+  const [dirtyBurstKey, setDirtyBurstKey] = useState(0);
 
   const resetForm = useCallback(() => {
     setEventTime(getDefaultEventTime());
@@ -77,6 +80,10 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
         details: null,
         timestamp: buildTimestamp(today, eventTime),
       });
+      if (unit === "dirty") {
+        setDirtyBurstKey((k) => k + 1);
+        setDirtyCelebration(true);
+      }
       handleLogSaved();
     } finally {
       setDiaperSubmitting(false);
@@ -88,6 +95,11 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
 
   return (
     <div className="mb-6">
+      <DirtyDiaperCelebration
+        show={dirtyCelebration}
+        burstKey={dirtyBurstKey}
+        onFinished={() => setDirtyCelebration(false)}
+      />
       <button
         type="button"
         onClick={() => setIsOpen((o) => !o)}
