@@ -6,6 +6,7 @@ import ActivityLogger from "@/components/ActivityLogger";
 import TodaySummary from "@/components/TodaySummary";
 import RecentActivity from "@/components/RecentActivity";
 import FeedingTrendChart from "@/components/FeedingTrendChart";
+import DiaperTrendChart from "@/components/DiaperTrendChart";
 import { fetchTodayLogs, fetchLastFeed, fetchRecentLogs, deleteLog } from "@/lib/queries";
 import type { LogRow } from "@/types/log";
 
@@ -109,6 +110,7 @@ export default function Home() {
             <ActivityLogger onLogSaved={refetch} />
             <TodaySummary logs={logs ?? []} lastFeed={lastFeed} />
             <FeedingTrendChart />
+            <DiaperTrendChart />
             <RecentActivity recentLogs={recentLogs ?? []} onDelete={handleDeleteActivity} />
           </div>
         )}
