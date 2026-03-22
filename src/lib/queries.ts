@@ -104,3 +104,15 @@ export async function fetchLast7DaysFeedLogs(): Promise<LogRow[]> {
   if (error) throw error;
   return (data ?? []) as LogRow[];
 }
+
+export async function fetchLast7DaysDiaperLogs(): Promise<LogRow[]> {
+  const start = getSevenDaysAgoUTC();
+  const { data, error } = await getSupabase()
+    .from("logs")
+    .select("*")
+    .eq("action_type", "diaper")
+    .gte("timestamp", start)
+    .order("timestamp", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as LogRow[];
+}
