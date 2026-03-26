@@ -79,16 +79,18 @@ export default function DirtyDiaperCelebration({
       </span>
 
       {reduced ? (
-        <div className="animate-celebration-fade rounded-2xl border border-amber-200 bg-amber-50/95 px-6 py-4 text-center shadow-lg backdrop-blur-sm">
+        <div className="animate-celebration-fade rounded-2xl border border-amber-200 bg-amber-50/95 px-6 py-4 text-center shadow-lg backdrop-blur-sm dark:border-amber-800 dark:bg-amber-950/90">
           <p className="text-4xl" aria-hidden>
             💩
           </p>
-          <p className="mt-2 text-lg font-bold text-amber-900">He did it!</p>
+          <p className="mt-2 text-lg font-bold text-amber-900 dark:text-amber-100">
+            He did it!
+          </p>
         </div>
       ) : (
         <>
           <div
-            className="absolute inset-0 bg-gradient-to-b from-amber-100/40 via-transparent to-amber-50/30 animate-celebration-fade"
+            className="absolute inset-0 bg-gradient-to-b from-amber-100/40 via-transparent to-amber-50/30 animate-celebration-fade dark:from-amber-900/35 dark:to-amber-950/25"
             aria-hidden
           />
           <div className="relative flex h-full w-full items-center justify-center">
