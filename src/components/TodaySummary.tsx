@@ -27,9 +27,9 @@ function formatFeedTime(iso: string): string {
 
 function LastFeedCard({ lastFeed }: { lastFeed: LogRow | null }) {
   return (
-    <div className="rounded-xl bg-blue-500 p-4 text-white shadow-sm md:col-span-1">
+    <div className="rounded-xl bg-blue-500 p-4 text-white shadow-sm dark:bg-blue-600 md:col-span-1">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-400">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-400 dark:bg-blue-500/80">
           <Clock className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -68,20 +68,20 @@ function StatCard({
   iconColor: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
       <div className="flex items-center gap-3">
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconBg}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconBg} dark:bg-zinc-800 dark:ring-1 dark:ring-zinc-600`}
         >
           <Icon className={`h-5 w-5 ${iconColor}`} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-400">
             {label}
           </p>
-          <p className="text-xl font-bold text-gray-900">
+          <p className="text-xl font-bold text-gray-900 dark:text-zinc-50">
             {value}
-            <span className="ml-1 text-sm font-normal text-gray-500">
+            <span className="ml-1 text-sm font-normal text-gray-500 dark:text-zinc-400">
               {unit}
             </span>
           </p>
@@ -108,7 +108,7 @@ export default function TodaySummary({
 
   return (
     <section>
-      <h2 className="mb-3 text-lg font-semibold text-gray-900">
+      <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-zinc-50">
         Today&apos;s Summary
       </h2>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -119,7 +119,7 @@ export default function TodaySummary({
           unit={unitFeed}
           icon={Baby}
           iconBg="bg-blue-100"
-          iconColor="text-blue-600"
+          iconColor="text-blue-600 dark:text-blue-300"
         />
         <StatCard
           label="Slept Today"
@@ -127,7 +127,7 @@ export default function TodaySummary({
           unit={unitSleep}
           icon={Moon}
           iconBg="bg-purple-100"
-          iconColor="text-purple-600"
+          iconColor="text-purple-600 dark:text-purple-300"
         />
         <StatCard
           label="Diapers Today"
@@ -135,7 +135,7 @@ export default function TodaySummary({
           unit="chgs"
           icon={Droplets}
           iconBg="bg-green-100"
-          iconColor="text-green-600"
+          iconColor="text-green-600 dark:text-green-300"
         />
       </div>
     </section>

@@ -7,6 +7,7 @@ import TodaySummary from "@/components/TodaySummary";
 import RecentActivity from "@/components/RecentActivity";
 import FeedingTrendChart from "@/components/FeedingTrendChart";
 import DiaperTrendChart from "@/components/DiaperTrendChart";
+import ThemeToggle from "@/components/ThemeToggle";
 import { fetchTodayLogs, fetchLastFeed, fetchRecentLogs, deleteLog } from "@/lib/queries";
 import type { LogRow } from "@/types/log";
 
@@ -21,8 +22,8 @@ function formatDate(date: Date): string {
 function SectionSkeleton() {
   return (
     <div className="space-y-3">
-      <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-      <div className="h-24 animate-pulse rounded-xl bg-gray-200" />
+      <div className="h-6 w-32 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" />
+      <div className="h-24 animate-pulse rounded-xl bg-gray-200 dark:bg-zinc-700" />
     </div>
   );
 }
@@ -81,20 +82,27 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-6">
+    <main className="min-h-screen bg-gray-50 px-4 py-6 dark:bg-zinc-950">
       <div className="mx-auto max-w-2xl">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pierre Tracker</h1>
-            <p className="mt-1 text-sm text-gray-500">{formatDate(new Date())}</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-50">
+              Pierre Tracker
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
+              {formatDate(new Date())}
+            </p>
           </div>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
-            <Baby className="h-5 w-5 text-blue-600" />
+          <div className="flex shrink-0 items-start gap-2">
+            <ThemeToggle />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950 dark:ring-1 dark:ring-blue-800">
+              <Baby className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
           </div>
         </header>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800">
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
             {error}
           </div>
         )}

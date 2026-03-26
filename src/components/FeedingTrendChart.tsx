@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { fetchLast7DaysFeedLogs } from "@/lib/queries";
+import { useEffectiveDark } from "@/components/ThemeProvider";
 import type { LogRow } from "@/types/log";
 
 function formatDayLabel(date: Date): string {
@@ -38,9 +39,26 @@ function aggregateByDay(logs: LogRow[]): { day: string; volume: number }[] {
 }
 
 export default function FeedingTrendChart() {
+  const isDark = useEffectiveDark();
   const [data, setData] = useState<{ day: string; volume: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const gridStroke = isDark ? "#3f3f46" : "#f0f0f0";
+  const tickColor = isDark ? "#a1a1aa" : "#525252";
+  const barFill = isDark ? "#60a5fa" : "#4F86F7";
+  const tooltipStyle = isDark
+    ? {
+        backgroundColor: "#18181b",
+        border: "1px solid #3f3f46",
+        borderRadius: "0.5rem",
+        color: "#fafafa",
+      }
+    : {
+        backgroundColor: "#fff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "0.5rem",
+      };
 
   useEffect(() => {
     let cancelled = false;
@@ -64,11 +82,11 @@ export default function FeedingTrendChart() {
   if (error) {
     return (
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-zinc-50">
           Feeding Volume (7 Days)
         </h2>
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <p className="text-center text-red-600">{error}</p>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
+          <p className="text-center text-red-600 dark:text-red-400">{error}</p>
         </div>
       </section>
     );
@@ -77,11 +95,11 @@ export default function FeedingTrendChart() {
   if (loading) {
     return (
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-zinc-50">
           Feeding Volume (7 Days)
         </h2>
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="h-[300px] animate-pulse rounded bg-gray-100" />
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
+          <div className="h-[300px] animate-pulse rounded bg-gray-100 dark:bg-zinc-800" />
         </div>
       </section>
     );
@@ -89,17 +107,17 @@ export default function FeedingTrendChart() {
 
   return (
     <section>
-      <h2 className="mb-3 text-lg font-semibold text-gray-900">
+      <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-zinc-50">
         Feeding Volume (7 Days)
       </h2>
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Bar dataKey="volume" fill="#4F86F7" name="Volume" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+            <XAxis dataKey="day" tick={{ fontSize: 12, fill: tickColor }} />
+            <YAxis tick={{ fontSize: 12, fill: tickColor }} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Bar dataKey="volume" fill={barFill} name="Volume" />
           </BarChart>
         </ResponsiveContainer>
       </div>
