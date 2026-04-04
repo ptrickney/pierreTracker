@@ -15,6 +15,21 @@ export function getDefaultEventTime(): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/** Returns today's date as "YYYY-MM-DD" in local timezone. */
+export function getTodayDateString(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Parses a "YYYY-MM-DD" string into a local Date (midnight). */
+export function parseDateString(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /** Returns all "HH:MM" values in 5-minute increments from 00:00 to 23:55. */
 export function generateTimeOptions(): string[] {
   const options: string[] = [];

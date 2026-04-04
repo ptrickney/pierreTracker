@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Plus, X, Clock } from "lucide-react";
+import { Plus, X, Clock, Calendar } from "lucide-react";
 import { insertLog, buildTimestamp } from "@/lib/queries";
 import {
   getDefaultEventTime,
   generateTimeOptions,
+  getTodayDateString,
+  parseDateString,
 } from "@/lib/timeUtils";
 import DirtyDiaperCelebration from "@/components/DirtyDiaperCelebration";
 
@@ -22,6 +24,7 @@ export type ActivityLoggerProps = {
 
 export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [eventDate, setEventDate] = useState(getTodayDateString);
   const [eventTime, setEventTime] = useState(getDefaultEventTime);
   const [feedAmount, setFeedAmount] = useState(FEED_DEFAULT);
   const [feedSubmitting, setFeedSubmitting] = useState(false);
@@ -30,12 +33,14 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
   const [dirtyBurstKey, setDirtyBurstKey] = useState(0);
 
   const resetForm = useCallback(() => {
+    setEventDate(getTodayDateString());
     setEventTime(getDefaultEventTime());
     setFeedAmount(FEED_DEFAULT);
   }, []);
 
   useEffect(() => {
     if (isOpen) {
+      setEventDate(getTodayDateString());
       setEventTime(getDefaultEventTime());
       setFeedAmount(FEED_DEFAULT);
     }
@@ -55,13 +60,12 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
   const handleLogFeed = async () => {
     setFeedSubmitting(true);
     try {
-      const today = new Date();
       await insertLog({
         action_type: "feed",
         amount: feedAmount,
         unit: "ml",
         details: null,
-        timestamp: buildTimestamp(today, eventTime),
+        timestamp: buildTimestamp(parseDateString(eventDate), eventTime),
       });
       handleLogSaved();
     } finally {
@@ -72,13 +76,12 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
   const handleLogDiaper = async (unit: "wet" | "dirty") => {
     setDiaperSubmitting(true);
     try {
-      const today = new Date();
       await insertLog({
         action_type: "diaper",
         amount: 1,
         unit,
         details: null,
-        timestamp: buildTimestamp(today, eventTime),
+        timestamp: buildTimestamp(parseDateString(eventDate), eventTime),
       });
       if (unit === "dirty") {
         setDirtyBurstKey((k) => k + 1);
@@ -90,6 +93,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
     }
   };
 
+  const isBackdate = eventDate !== getTodayDateString();
   const atMin = feedAmount <= FEED_MIN;
   const atMax = feedAmount >= FEED_MAX;
 
@@ -114,7 +118,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
 
       <div
         className="overflow-hidden transition-[max-height] duration-200 ease-out"
-        style={{ maxHeight: isOpen ? "480px" : "0px" }}
+        style={{ maxHeight: isOpen ? "560px" : "0px" }}
       >
         <div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
@@ -131,24 +135,46 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
-                  <Clock className="h-4 w-4" />
-                  EVENT TIME:
-                </label>
-                <select
-                  value={eventTime}
-                  onChange={(e) => setEventTime(e.target.value)}
-                  className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-lg font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
-                  aria-label="Event time"
-                >
-                  {timeOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
+                    <Calendar className="h-4 w-4" />
+                    DATE:
+                  </label>
+                  <input
+                    type="date"
+                    value={eventDate}
+                    max={getTodayDateString()}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-lg font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                    aria-label="Event date"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
+                    <Clock className="h-4 w-4" />
+                    TIME:
+                  </label>
+                  <select
+                    value={eventTime}
+                    onChange={(e) => setEventTime(e.target.value)}
+                    className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-lg font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                    aria-label="Event time"
+                  >
+                    {timeOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
+
+              {isBackdate && (
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                  Logging for a past date
+                </p>
+              )}
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
