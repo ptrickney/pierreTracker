@@ -81,14 +81,17 @@ export async function fetchLastFeed(): Promise<LogRow | null> {
   return (data?.[0] as LogRow) ?? null;
 }
 
+export const RECENT_LOGS_PAGE_SIZE = 20;
+
 export async function fetchRecentLogs(
-  limit: number = 20
+  limit: number = RECENT_LOGS_PAGE_SIZE,
+  offset: number = 0
 ): Promise<LogRow[]> {
   const { data, error } = await getSupabase()
     .from("logs")
     .select("*")
     .order("timestamp", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
   if (error) throw error;
   return (data ?? []) as LogRow[];
 }
