@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase";
 import type { LogRow } from "@/types/log";
+import { getTrendWindow, type TrendWindow } from "@/lib/trendWindow";
 
 /** Builds an ISO timestamp for a given date and "HH:MM" (24h) time in local timezone. */
 export function buildTimestamp(date: Date, timeHHMM: string): string {
@@ -51,13 +52,6 @@ function getTodayBoundsUTC(): { start: string; end: string } {
   };
 }
 
-function getSevenDaysAgoUTC(): string {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  start.setDate(start.getDate() - 6);
-  return start.toISOString();
-}
-
 export async function fetchTodayLogs(): Promise<LogRow[]> {
   const { start, end } = getTodayBoundsUTC();
   const { data, error } = await getSupabase()
@@ -96,25 +90,31 @@ export async function fetchRecentLogs(
   return (data ?? []) as LogRow[];
 }
 
-export async function fetchLast7DaysFeedLogs(): Promise<LogRow[]> {
-  const start = getSevenDaysAgoUTC();
+type TrendQueryWindow = Pick<TrendWindow, "start" | "endExclusive">;
+
+export async function fetchFeedTrendLogs(
+  window: TrendQueryWindow = getTrendWindow()
+): Promise<LogRow[]> {
   const { data, error } = await getSupabase()
     .from("logs")
     .select("*")
     .eq("action_type", "feed")
-    .gte("timestamp", start)
+    .gte("timestamp", window.start.toISOString())
+    .lt("timestamp", window.endExclusive.toISOString())
     .order("timestamp", { ascending: true });
   if (error) throw error;
   return (data ?? []) as LogRow[];
 }
 
-export async function fetchLast7DaysDiaperLogs(): Promise<LogRow[]> {
-  const start = getSevenDaysAgoUTC();
+export async function fetchDiaperTrendLogs(
+  window: TrendQueryWindow = getTrendWindow()
+): Promise<LogRow[]> {
   const { data, error } = await getSupabase()
     .from("logs")
     .select("*")
     .eq("action_type", "diaper")
-    .gte("timestamp", start)
+    .gte("timestamp", window.start.toISOString())
+    .lt("timestamp", window.endExclusive.toISOString())
     .order("timestamp", { ascending: true });
   if (error) throw error;
   return (data ?? []) as LogRow[];
