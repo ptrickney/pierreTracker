@@ -14,7 +14,7 @@ import DirtyDiaperCelebration from "@/components/DirtyDiaperCelebration";
 const FEED_MIN = 0;
 const FEED_MAX = 500;
 const FEED_STEP = 10;
-const FEED_DEFAULT = 120;
+const FEED_DEFAULT = 200;
 
 const timeOptions = generateTimeOptions();
 
