@@ -148,19 +148,24 @@ export default function FoodPassport({
           <BookOpen className="h-5 w-5" />
           Pierre&apos;s Food Passport
         </h2>
-        <p className="mt-2 text-sm text-orange-50">
-          {data.uniqueFoodCount === 0 ? (
-            "No solids logged yet — tap Log Activity → Solids to start."
-          ) : (
-            <>
-              Introduced {data.uniqueFoodCount} food
-              {data.uniqueFoodCount === 1 ? "" : "s"} ({data.allergensPassedCount}{" "}
-              Top Allergen
-              {data.allergensPassedCount === 1 ? "" : "s"} Passed{" "}
-              <Shield className="inline h-3.5 w-3.5 align-text-bottom" />)
-            </>
-          )}
-        </p>
+        {data.uniqueFoodCount === 0 ? (
+          <p className="mt-2 text-sm text-orange-50">
+            No solids logged yet — tap Log Activity → Solids to start.
+          </p>
+        ) : (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+              <BookOpen className="h-3.5 w-3.5" aria-hidden />
+              {data.uniqueFoodCount} food
+              {data.uniqueFoodCount === 1 ? "" : "s"} introduced
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+              <Shield className="h-3.5 w-3.5" aria-hidden />
+              {data.allergensPassedCount} top allergen
+              {data.allergensPassedCount === 1 ? "" : "s"} passed
+            </span>
+          </div>
+        )}
 
         <button
           type="button"
@@ -280,11 +285,17 @@ function ExplorePassportModal({
               <BookOpen className="h-5 w-5 text-orange-500" />
               Pierre&apos;s Food Passport
             </h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
-              {uniqueFoodCount} unique foods explored | {allergensPassedCount} Top
-              Allergens Passed{" "}
-              <Shield className="inline h-3.5 w-3.5 align-text-bottom text-orange-500" />
-            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-950/40 dark:text-orange-200">
+                <BookOpen className="h-3.5 w-3.5" aria-hidden />
+                {uniqueFoodCount} food{uniqueFoodCount === 1 ? "" : "s"} explored
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200">
+                <Shield className="h-3.5 w-3.5" aria-hidden />
+                {allergensPassedCount} top allergen
+                {allergensPassedCount === 1 ? "" : "s"} passed
+              </span>
+            </div>
           </div>
           <button
             type="button"
@@ -302,29 +313,32 @@ function ExplorePassportModal({
               No foods yet. Log a solid from Activity Logger to fill the passport.
             </p>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {FOOD_CATEGORIES.map((cat) => {
                 const list = byCategory.get(cat) ?? [];
                 if (list.length === 0) return null;
                 const meta = categoryMeta(cat);
                 return (
-                  <div key={cat}>
-                    <div className="mb-2 flex items-center gap-2">
+                  <section
+                    key={cat}
+                    className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800/40"
+                  >
+                    <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2.5 dark:border-zinc-700 dark:bg-zinc-800/80">
                       <span aria-hidden>{meta.emoji}</span>
                       <h4 className="font-semibold text-gray-900 dark:text-zinc-50">
                         {meta.label}
                       </h4>
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                      <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
                         {list.length} food{list.length === 1 ? "" : "s"}
                       </span>
                     </div>
-                    <ul className="space-y-2">
+                    <ul className="space-y-2 p-3">
                       {list.map((food) => (
                         <li key={food.id}>
                           <button
                             type="button"
                             onClick={() => setDetailId(food.id)}
-                            className={`flex w-full min-h-[56px] items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-zinc-800 ${
+                            className={`flex w-full min-h-[56px] items-center justify-between gap-3 rounded-xl border bg-white px-3 py-2 text-left shadow-sm transition hover:bg-gray-50 dark:bg-zinc-900 dark:hover:bg-zinc-800 ${
                               food.hasReaction
                                 ? "border-red-300 dark:border-red-800"
                                 : "border-gray-200 dark:border-zinc-600"
@@ -350,7 +364,7 @@ function ExplorePassportModal({
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </section>
                 );
               })}
             </div>

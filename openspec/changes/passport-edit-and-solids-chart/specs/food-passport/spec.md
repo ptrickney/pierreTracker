@@ -18,6 +18,24 @@ Explore Passport and Food Detail SHALL render as full-screen overlays that cover
 - **WHEN** the user opens a food from Explore Passport
 - **THEN** Food Detail fills the viewport the same way
 
+### Requirement: Visually distinct category groups in Explore Passport
+
+Explore Passport SHALL render each food category as a visually contained group (for example a shaded, bordered panel with its own header) so adjacent categories are distinguishable at a glance. Each group header SHALL show the category label and its food count, and the foods in the group SHALL be visually nested inside that group.
+
+#### Scenario: Adjacent categories are distinguishable
+
+- **WHEN** the passport shows Vegetables and Fruits with foods in each
+- **THEN** each category’s foods appear inside a distinct shaded container with that category’s header and count
+
+### Requirement: Passport stats are labeled
+
+Passport summary statistics (foods explored, top allergens passed) SHALL be presented as labeled elements where any icon is attached to the statistic it represents. A decorative icon SHALL NOT appear detached from its statistic.
+
+#### Scenario: Allergen stat carries its icon
+
+- **WHEN** the passport header or card displays the top-allergens-passed count
+- **THEN** the shield icon appears as part of that statistic’s label rather than orphaned on its own line
+
 ### Requirement: Edit solid exposure from Food Detail history
 
 Each exposure row in Food Detail SHALL offer a control to edit that solid-food entry. The edit form SHALL allow changing food name, category, preference, and classic-9 allergen tags. Saving SHALL persist those fields and refresh Food Detail and passport data without a full page reload.

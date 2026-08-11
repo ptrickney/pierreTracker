@@ -9,6 +9,11 @@
 - [x] 2.2 Add edit UI from Food Detail history rows (name, category, preference, allergens) with save/cancel
 - [x] 2.3 Refresh Food Detail + passport (and parent dashboard callback) after successful save
 
+## 2b. Passport readability
+
+- [ ] 2b.1 Render each Explore Passport category as a shaded, bordered group with header + count
+- [ ] 2b.2 Replace orphaned shield icon with labeled stat pills on the passport card and explore header
+
 ## 3. Solids trend chart
 
 - [x] 3.1 Add query for food exposures in a trend lookback window
