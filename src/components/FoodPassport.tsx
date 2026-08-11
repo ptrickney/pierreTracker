@@ -41,6 +41,33 @@ function formatTriedDateTime(iso: string): string {
   })}`;
 }
 
+/** Prevent the dashboard from scrolling while a passport overlay is open. */
+function useLockBodyScroll() {
+  useEffect(() => {
+    const { body } = document;
+    const scrollY = window.scrollY;
+    const previous = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+    };
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+
+    return () => {
+      body.style.overflow = previous.overflow;
+      body.style.position = previous.position;
+      body.style.top = previous.top;
+      body.style.width = previous.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+}
+
 export default function FoodPassport({
   refreshKey = 0,
 }: {
@@ -186,6 +213,7 @@ function ExplorePassportModal({
   onChanged: () => void;
 }) {
   const [detailId, setDetailId] = useState<string | null>(initialFoodId);
+  useLockBodyScroll();
 
   useEffect(() => {
     setDetailId(initialFoodId);
@@ -214,14 +242,14 @@ function ExplorePassportModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black/40 p-0 sm:items-center sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Pierre's Food Passport"
-        className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-2xl bg-white shadow-xl dark:bg-zinc-900 sm:rounded-2xl"
+        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl dark:bg-zinc-900 sm:rounded-2xl"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-zinc-700">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-zinc-700">
           <div>
             <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-zinc-50">
               <BookOpen className="h-5 w-5 text-orange-500" />
@@ -243,7 +271,7 @@ function ExplorePassportModal({
           </button>
         </div>
 
-        <div className="overflow-y-auto px-4 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           {foods.length === 0 ? (
             <p className="py-10 text-center text-sm text-gray-500 dark:text-zinc-400">
               No foods yet. Log a solid from Activity Logger to fill the passport.
@@ -395,14 +423,14 @@ function FoodDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black/40 p-0 sm:items-center sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Food detail"
-        className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-2xl bg-white shadow-xl dark:bg-zinc-900 sm:rounded-2xl"
+        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl dark:bg-zinc-900 sm:rounded-2xl"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-zinc-700">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-zinc-700">
           <div>
             <button
               type="button"
@@ -467,7 +495,7 @@ function FoodDetailModal({
           </button>
         </div>
 
-        <div className="overflow-y-auto px-4 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           {loading && !detail ? (
             <p className="py-8 text-center text-sm text-gray-500">Loading…</p>
           ) : error ? (
