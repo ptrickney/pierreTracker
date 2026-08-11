@@ -1,19 +1,20 @@
-# Plan: Trend Chart History Navigation
+# Plan: Solid Foods + Food Passport
 
 ## Goal
 
-Let the feeding and diaper 7-day bar charts look backward through prior days, while keeping the current week easy to return to and showing the active window's running 7-day average.
+Add solid-food logging and Food Passport — **implemented** in change `add-solid-foods`.
 
-## Design
+## Status
 
-- Add reusable date-window helpers for local-day start/end bounds, labels, previous/next day movement, and average calculation.
-- Update Supabase trend queries to accept a `{ start, end }` timestamp range instead of only fetching the current last 7 days.
-- Add compact Previous day / Next day / Today controls to each chart header; disable Next day when the active window ends today.
-- Show a small average summary above each chart: feeding volume average, diaper total average, and wet/dirty breakdown for diapers.
-- Keep the existing card, typography, color, and Recharts visual style.
+OpenSpec tasks 24/24 complete. Lint + build pass. Schema applied to Supabase (`foods`, `food_exposures`).
 
-## Testing Plan
+## What shipped
 
-- Add focused helper coverage first, verifying local date windows, previous/next movement, future-window blocking, and seven-day averages.
-- Run lint and production build.
-- Browser-test the dashboard and record chart navigation moving to previous days and returning toward today.
+- Bottle | Solids toggle in activity logger (no quantity for solids)
+- Autocomplete, preference, classic-9 allergen chips, comments, reaction at log time
+- Food Passport card → Explore by category → Food Detail (history, delayed reaction, comments)
+- Recent Activity merges solid exposures; bottle ml totals/charts unchanged
+
+## Next step
+
+Archive with `/opsx-archive` when ready, after a quick pass in the browser on a phone-sized viewport.
