@@ -3,12 +3,19 @@
 import { useEffect, useState } from "react";
 import { Baby } from "lucide-react";
 import ActivityLogger from "@/components/ActivityLogger";
+import FoodPassport from "@/components/FoodPassport";
 import TodaySummary from "@/components/TodaySummary";
 import RecentActivity from "@/components/RecentActivity";
 import FeedingTrendChart from "@/components/FeedingTrendChart";
 import DiaperTrendChart from "@/components/DiaperTrendChart";
 import ThemeToggle from "@/components/ThemeToggle";
-import { fetchTodayLogs, fetchLastFeed, fetchRecentLogs, deleteLog } from "@/lib/queries";
+import {
+  fetchTodayLogs,
+  fetchLastFeed,
+  fetchRecentActivity,
+  deleteActivityItem,
+} from "@/lib/queries";
+import type { ActivityItem } from "@/types/activity";
 import type { LogRow } from "@/types/log";
 
 function formatDate(date: Date): string {
@@ -31,25 +38,27 @@ function SectionSkeleton() {
 export default function Home() {
   const [logs, setLogs] = useState<LogRow[] | null>(null);
   const [lastFeed, setLastFeed] = useState<LogRow | null>(null);
-  const [recentLogs, setRecentLogs] = useState<LogRow[] | null>(null);
+  const [recentItems, setRecentItems] = useState<ActivityItem[] | null>(null);
+  const [passportKey, setPassportKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = () => {
-    Promise.all([fetchTodayLogs(), fetchLastFeed(), fetchRecentLogs()])
+    Promise.all([fetchTodayLogs(), fetchLastFeed(), fetchRecentActivity()])
       .then(([todayData, lastFeedData, recentData]) => {
         setLogs(todayData);
         setLastFeed(lastFeedData);
-        setRecentLogs(recentData);
+        setRecentItems(recentData);
+        setPassportKey((k) => k + 1);
       })
       .catch((e) => {
         setError(e instanceof Error ? e.message : "Failed to load data");
       });
   };
 
-  const handleDeleteActivity = async (id: string) => {
+  const handleDeleteActivity = async (item: ActivityItem) => {
     try {
-      await deleteLog(id);
+      await deleteActivityItem(item);
       setError(null);
       refetch();
     } catch (e) {
@@ -61,12 +70,12 @@ export default function Home() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    Promise.all([fetchTodayLogs(), fetchLastFeed(), fetchRecentLogs()])
+    Promise.all([fetchTodayLogs(), fetchLastFeed(), fetchRecentActivity()])
       .then(([todayData, lastFeedData, recentData]) => {
         if (!cancelled) {
           setLogs(todayData);
           setLastFeed(lastFeedData);
-          setRecentLogs(recentData);
+          setRecentItems(recentData);
         }
       })
       .catch((e) => {
@@ -116,10 +125,14 @@ export default function Home() {
         ) : (
           <div className="space-y-8">
             <ActivityLogger onLogSaved={refetch} />
+            <FoodPassport refreshKey={passportKey} />
             <TodaySummary logs={logs ?? []} lastFeed={lastFeed} />
             <FeedingTrendChart />
             <DiaperTrendChart />
-            <RecentActivity recentLogs={recentLogs ?? []} onDelete={handleDeleteActivity} />
+            <RecentActivity
+              recentItems={recentItems ?? []}
+              onDelete={handleDeleteActivity}
+            />
           </div>
         )}
       </div>

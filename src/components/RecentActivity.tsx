@@ -3,43 +3,47 @@
 import { useState } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import EventRow from "./EventRow";
-import { fetchRecentLogs, RECENT_LOGS_PAGE_SIZE } from "@/lib/queries";
-import type { LogRow } from "@/types/log";
+import { fetchRecentActivity, RECENT_LOGS_PAGE_SIZE } from "@/lib/queries";
+import type { ActivityItem } from "@/types/activity";
+
+function itemKey(item: ActivityItem): string {
+  return `${item.source}:${item.id}`;
+}
 
 export default function RecentActivity({
-  recentLogs,
+  recentItems,
   onDelete,
 }: {
-  recentLogs: LogRow[];
-  onDelete?: (id: string) => Promise<void>;
+  recentItems: ActivityItem[];
+  onDelete?: (item: ActivityItem) => Promise<void>;
 }) {
-  const [allLogs, setAllLogs] = useState<LogRow[]>(recentLogs);
+  const [allItems, setAllItems] = useState<ActivityItem[]>(recentItems);
   const [hasMore, setHasMore] = useState(
-    recentLogs.length >= RECENT_LOGS_PAGE_SIZE
+    recentItems.length >= RECENT_LOGS_PAGE_SIZE
   );
   const [loadingMore, setLoadingMore] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
-  const sorted = [...allLogs].sort(
+  const sorted = [...allItems].sort(
     (a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
-  const seenIds = new Set<string>();
-  const deduped = sorted.filter((log) => {
-    if (seenIds.has(log.id)) return false;
-    seenIds.add(log.id);
+  const seen = new Set<string>();
+  const deduped = sorted.filter((item) => {
+    const key = itemKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 
   const handleLoadMore = async () => {
+    if (deduped.length === 0) return;
     setLoadingMore(true);
     try {
-      const next = await fetchRecentLogs(
-        RECENT_LOGS_PAGE_SIZE,
-        allLogs.length
-      );
-      setAllLogs((prev) => [...prev, ...next]);
+      const oldest = deduped[deduped.length - 1].timestamp;
+      const next = await fetchRecentActivity(RECENT_LOGS_PAGE_SIZE, oldest);
+      setAllItems((prev) => [...prev, ...next]);
       if (next.length < RECENT_LOGS_PAGE_SIZE) {
         setHasMore(false);
       }
@@ -48,24 +52,26 @@ export default function RecentActivity({
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (item: ActivityItem) => {
     if (!onDelete) return;
-    setDeletingId(id);
+    const key = itemKey(item);
+    setDeletingKey(key);
     try {
-      await onDelete(id);
-      setAllLogs((prev) => prev.filter((log) => log.id !== id));
+      await onDelete(item);
+      setAllItems((prev) =>
+        prev.filter((row) => itemKey(row) !== key)
+      );
     } finally {
-      setDeletingId(null);
+      setDeletingKey(null);
     }
   };
 
-  // Sync when parent refetches (e.g. after logging a new activity)
-  const parentKey = recentLogs.map((l) => l.id).join(",");
+  const parentKey = recentItems.map(itemKey).join(",");
   const [prevParentKey, setPrevParentKey] = useState(parentKey);
   if (parentKey !== prevParentKey) {
     setPrevParentKey(parentKey);
-    setAllLogs(recentLogs);
-    setHasMore(recentLogs.length >= RECENT_LOGS_PAGE_SIZE);
+    setAllItems(recentItems);
+    setHasMore(recentItems.length >= RECENT_LOGS_PAGE_SIZE);
   }
 
   return (
@@ -80,12 +86,12 @@ export default function RecentActivity({
           </p>
         ) : (
           <div className="divide-y divide-gray-100 px-4 dark:divide-zinc-700">
-            {deduped.map((log) => (
+            {deduped.map((item) => (
               <EventRow
-                key={log.id}
-                log={log}
+                key={itemKey(item)}
+                item={item}
                 onDelete={onDelete ? handleDelete : undefined}
-                deleting={deletingId === log.id}
+                deleting={deletingKey === itemKey(item)}
               />
             ))}
           </div>

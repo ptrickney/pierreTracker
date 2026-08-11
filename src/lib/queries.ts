@@ -1,6 +1,15 @@
 import { getSupabase } from "./supabase";
-import type { LogRow } from "@/types/log";
+import {
+  deleteFoodExposure,
+  fetchRecentFoodExposures,
+} from "@/lib/foodQueries";
 import { getTrendWindow, type TrendWindow } from "@/lib/trendWindow";
+import {
+  logToActivityItem,
+  type ActivityItem,
+  type SolidActivityItem,
+} from "@/types/activity";
+import type { LogRow } from "@/types/log";
 
 /** Builds an ISO timestamp for a given date and "HH:MM" (24h) time in local timezone. */
 export function buildTimestamp(date: Date, timeHHMM: string): string {
@@ -88,6 +97,65 @@ export async function fetchRecentLogs(
     .range(offset, offset + limit - 1);
   if (error) throw error;
   return (data ?? []) as LogRow[];
+}
+
+function exposureToActivityItem(
+  exposure: Awaited<ReturnType<typeof fetchRecentFoodExposures>>[number]
+): SolidActivityItem {
+  return {
+    source: "solid",
+    id: exposure.id,
+    timestamp: exposure.timestamp,
+    food_id: exposure.food_id,
+    food_name: exposure.food.name,
+    preference: exposure.preference,
+    had_reaction: exposure.had_reaction,
+    reaction_notes: exposure.reaction_notes,
+    comment: exposure.comment,
+  };
+}
+
+/**
+ * Merge recent logs + solid exposures, newest first.
+ * Uses timestamp cursor for "load more" (not offset), since sources are separate tables.
+ */
+export async function fetchRecentActivity(
+  limit: number = RECENT_LOGS_PAGE_SIZE,
+  beforeTimestamp?: string
+): Promise<ActivityItem[]> {
+  let logsQuery = getSupabase()
+    .from("logs")
+    .select("*")
+    .order("timestamp", { ascending: false })
+    .limit(limit);
+  if (beforeTimestamp) {
+    logsQuery = logsQuery.lt("timestamp", beforeTimestamp);
+  }
+  const [{ data: logsData, error: logsError }, exposures] = await Promise.all([
+    logsQuery,
+    fetchRecentFoodExposures(limit, beforeTimestamp),
+  ]);
+  if (logsError) throw logsError;
+
+  const items: ActivityItem[] = [
+    ...((logsData ?? []) as LogRow[]).map(logToActivityItem),
+    ...exposures.map(exposureToActivityItem),
+  ];
+
+  return items
+    .sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+    .slice(0, limit);
+}
+
+export async function deleteActivityItem(item: ActivityItem): Promise<void> {
+  if (item.source === "solid") {
+    await deleteFoodExposure(item.id);
+    return;
+  }
+  await deleteLog(item.id);
 }
 
 type TrendQueryWindow = Pick<TrendWindow, "start" | "endExclusive">;
