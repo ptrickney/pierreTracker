@@ -17,5 +17,5 @@
 
 ## 4. Verification
 
-- [ ] 4.1 Lint + build
-- [ ] 4.2 Manual browser check: full-screen overlay, edit save, solids chart renders
+- [x] 4.1 Lint + build
+- [x] 4.2 Manual browser check: full-screen overlay, edit save, solids chart renders
