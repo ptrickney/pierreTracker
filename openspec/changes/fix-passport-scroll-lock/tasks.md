@@ -6,5 +6,5 @@
 
 ## 2. Verification
 
-- [ ] 2.1 Manually verify: open passport with long content → scroll stays inside overlay; short content → page behind does not scroll; Food Detail same behavior; close restores page scroll
-- [ ] 2.2 Run lint and build
+- [x] 2.1 Manually verify: open passport with long content → scroll stays inside overlay; short content → page behind does not scroll; Food Detail same behavior; close restores page scroll
+- [x] 2.2 Run lint and build
