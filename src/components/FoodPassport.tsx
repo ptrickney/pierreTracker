@@ -1,23 +1,39 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Shield, X, AlertCircle, MessageSquare } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  BookOpen,
+  Shield,
+  X,
+  AlertCircle,
+  MessageSquare,
+  Pencil,
+} from "lucide-react";
+import {
+  editSolidFoodExposure,
   fetchFoodDetail,
   fetchPassportSummary,
+  searchFoodsByName,
   updateFoodCategory,
   updateFoodExposureComment,
   updateFoodExposureReaction,
 } from "@/lib/foodQueries";
 import {
+  ALLERGEN_OPTIONS,
   CATEGORY_OPTIONS,
   categoryMeta,
+  inferAllergens,
+  PREFERENCE_OPTIONS,
   preferenceEmoji,
 } from "@/lib/foodConstants";
 import {
   FOOD_CATEGORIES,
+  type AllergenKey,
   type FoodCategory,
   type FoodDetail,
+  type FoodExposureRow,
+  type FoodPreference,
+  type FoodRow,
   type PassportFoodSummary,
   type PassportSummary,
 } from "@/types/food";
@@ -68,10 +84,15 @@ function useLockBodyScroll() {
   }, []);
 }
 
+const overlayShellClassName =
+  "fixed inset-0 z-50 flex flex-col overflow-hidden bg-white dark:bg-zinc-900";
+
 export default function FoodPassport({
   refreshKey = 0,
+  onChanged,
 }: {
   refreshKey?: number;
+  onChanged?: () => void;
 }) {
   const [summary, setSummary] = useState<PassportSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,6 +116,11 @@ export default function FoodPassport({
   useEffect(() => {
     load();
   }, [refreshKey]);
+
+  const handleChanged = () => {
+    load();
+    onChanged?.();
+  };
 
   if (loading && !summary) {
     return (
@@ -188,9 +214,7 @@ export default function FoodPassport({
             setExploreOpen(false);
             setDetailFoodId(null);
           }}
-          onChanged={() => {
-            load();
-          }}
+          onChanged={handleChanged}
         />
       )}
     </>
@@ -237,19 +261,20 @@ function ExplorePassportModal({
         onBack={() => setDetailId(null)}
         onClose={onClose}
         onChanged={onChanged}
+        onNavigateToFood={(id) => setDetailId(id)}
       />
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black/40 p-0 sm:items-center sm:p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Pierre's Food Passport"
-        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl dark:bg-zinc-900 sm:rounded-2xl"
-      >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-zinc-700">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Pierre's Food Passport"
+      className={overlayShellClassName}
+    >
+      <div className="mx-auto flex h-full w-full max-w-lg flex-col">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] dark:border-zinc-700">
           <div>
             <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-zinc-50">
               <BookOpen className="h-5 w-5 text-orange-500" />
@@ -271,7 +296,7 @@ function ExplorePassportModal({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {foods.length === 0 ? (
             <p className="py-10 text-center text-sm text-gray-500 dark:text-zinc-400">
               No foods yet. Log a solid from Activity Logger to fill the passport.
@@ -341,11 +366,13 @@ function FoodDetailModal({
   onBack,
   onClose,
   onChanged,
+  onNavigateToFood,
 }: {
   foodId: string;
   onBack: () => void;
   onClose: () => void;
   onChanged: () => void;
+  onNavigateToFood: (foodId: string) => void;
 }) {
   const [detail, setDetail] = useState<FoodDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -354,10 +381,13 @@ function FoodDetailModal({
   const [mode, setMode] = useState<"reaction" | "comment" | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingExposure, setEditingExposure] =
+    useState<FoodExposureRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setEditingExposure(null);
     fetchFoodDetail(foodId)
       .then((d) => {
         if (!cancelled) {
@@ -396,6 +426,7 @@ function FoodDetailModal({
     nextMode: "reaction" | "comment",
     initial: string
   ) => {
+    setEditingExposure(null);
     setActiveExposureId(exposureId);
     setMode(nextMode);
     setDraft(initial);
@@ -423,26 +454,34 @@ function FoodDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black/40 p-0 sm:items-center sm:p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Food detail"
-        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl dark:bg-zinc-900 sm:rounded-2xl"
-      >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-zinc-700">
-          <div>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Food detail"
+      className={overlayShellClassName}
+    >
+      <div className="mx-auto flex h-full w-full max-w-lg flex-col">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] dark:border-zinc-700">
+          <div className="min-w-0">
             <button
               type="button"
-              onClick={onBack}
+              onClick={() => {
+                if (editingExposure) {
+                  setEditingExposure(null);
+                  return;
+                }
+                onBack();
+              }}
               className="mb-2 text-sm font-medium text-blue-600 dark:text-blue-400"
             >
-              ← Back to passport
+              {editingExposure ? "← Back to history" : "← Back to passport"}
             </button>
             <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-50">
-              {detail?.food.name ?? "Food"}
+              {editingExposure
+                ? "Edit solid entry"
+                : (detail?.food.name ?? "Food")}
             </h3>
-            {detail && (
+            {detail && !editingExposure && (
               <div className="mt-2 space-y-1">
                 <label className="block text-xs font-medium text-gray-500 dark:text-zinc-400">
                   Category
@@ -488,17 +527,32 @@ function FoodDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          {loading && !detail ? (
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {editingExposure && detail ? (
+            <EditExposureForm
+              food={detail.food}
+              exposure={editingExposure}
+              onCancel={() => setEditingExposure(null)}
+              onSaved={(result) => {
+                setEditingExposure(null);
+                onChanged();
+                if (result.food.id !== foodId) {
+                  onNavigateToFood(result.food.id);
+                } else {
+                  reload();
+                }
+              }}
+            />
+          ) : loading && !detail ? (
             <p className="py-8 text-center text-sm text-gray-500">Loading…</p>
-          ) : error ? (
+          ) : error && !detail ? (
             <p className="text-sm text-red-600">{error}</p>
           ) : detail && detail.exposures.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">
@@ -506,6 +560,9 @@ function FoodDetailModal({
             </p>
           ) : (
             <ul className="space-y-3">
+              {error && (
+                <li className="text-sm text-red-600 dark:text-red-400">{error}</li>
+              )}
               {detail?.exposures.map((exp) => (
                 <li
                   key={exp.id}
@@ -515,7 +572,15 @@ function FoodDetailModal({
                       : "border-gray-200 dark:border-zinc-600"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode(null);
+                      setActiveExposureId(null);
+                      setEditingExposure(exp);
+                    }}
+                    className="flex w-full items-start justify-between gap-2 text-left"
+                  >
                     <div>
                       <p className="font-semibold text-gray-900 dark:text-zinc-50">
                         <span aria-hidden className="mr-1.5">
@@ -534,13 +599,21 @@ function FoodDetailModal({
                         </p>
                       )}
                     </div>
-                  </div>
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-600 dark:bg-zinc-800 dark:text-zinc-300">
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit
+                    </span>
+                  </button>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {!exp.had_reaction && (
                       <button
                         type="button"
                         onClick={() =>
-                          startAction(exp.id, "reaction", exp.reaction_notes ?? "")
+                          startAction(
+                            exp.id,
+                            "reaction",
+                            exp.reaction_notes ?? ""
+                          )
                         }
                         className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
                       >
@@ -609,6 +682,239 @@ function FoodDetailModal({
             </ul>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EditExposureForm({
+  food,
+  exposure,
+  onCancel,
+  onSaved,
+}: {
+  food: FoodRow;
+  exposure: FoodExposureRow;
+  onCancel: () => void;
+  onSaved: (result: {
+    food: FoodRow;
+    exposure: FoodExposureRow;
+  }) => void;
+}) {
+  const [foodName, setFoodName] = useState(food.name);
+  const [category, setCategory] = useState<FoodCategory>(food.category);
+  const [preference, setPreference] = useState<FoodPreference>(
+    exposure.preference
+  );
+  const [allergens, setAllergens] = useState<AllergenKey[]>(food.allergens);
+  const [suggestions, setSuggestions] = useState<FoodRow[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const skipNextAllergenInfer = useRef(true);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!foodName.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    searchTimer.current = setTimeout(() => {
+      searchFoodsByName(foodName)
+        .then(setSuggestions)
+        .catch(() => setSuggestions([]));
+    }, 200);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [foodName]);
+
+  useEffect(() => {
+    if (skipNextAllergenInfer.current) {
+      skipNextAllergenInfer.current = false;
+      return;
+    }
+    setAllergens(inferAllergens(foodName));
+  }, [foodName]);
+
+  const toggleAllergen = (key: AllergenKey) => {
+    setAllergens((prev) =>
+      prev.includes(key) ? prev.filter((a) => a !== key) : [...prev, key]
+    );
+  };
+
+  const selectSuggestion = (row: FoodRow) => {
+    skipNextAllergenInfer.current = true;
+    setFoodName(row.name);
+    setCategory(row.category);
+    setAllergens(
+      row.allergens.length > 0 ? row.allergens : inferAllergens(row.name)
+    );
+    setShowSuggestions(false);
+  };
+
+  const handleSave = async () => {
+    if (!foodName.trim()) {
+      setError("Enter what he ate");
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    try {
+      const result = await editSolidFoodExposure({
+        exposureId: exposure.id,
+        name: foodName,
+        category,
+        preference,
+        allergens,
+      });
+      onSaved(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-500 dark:text-zinc-400">
+        Logged {formatTriedDateTime(exposure.timestamp)}
+      </p>
+
+      <div className="relative">
+        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
+          Food
+        </label>
+        <input
+          type="text"
+          value={foodName}
+          onChange={(e) => {
+            setFoodName(e.target.value);
+            setError(null);
+            setShowSuggestions(true);
+          }}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => {
+            setTimeout(() => setShowSuggestions(false), 150);
+          }}
+          className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          aria-label="Food name"
+          autoComplete="off"
+        />
+        {showSuggestions && suggestions.length > 0 && (
+          <ul className="absolute z-20 mt-1 max-h-40 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-800">
+            {suggestions.map((row) => (
+              <li key={row.id}>
+                <button
+                  type="button"
+                  className="flex w-full min-h-[44px] items-center px-3 py-2 text-left text-sm text-gray-800 hover:bg-orange-50 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectSuggestion(row)}
+                >
+                  {row.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
+          Category
+        </label>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as FoodCategory)}
+          className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          aria-label="Food category"
+        >
+          {CATEGORY_OPTIONS.map((opt) => (
+            <option key={opt.key} value={opt.key}>
+              {opt.emoji} {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
+          Preference
+        </p>
+        <div className="grid grid-cols-4 gap-2">
+          {PREFERENCE_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setPreference(opt.key)}
+              className={`flex min-h-[52px] flex-col items-center justify-center rounded-xl border text-2xl transition ${
+                preference === opt.key
+                  ? "border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/50"
+                  : "border-gray-200 bg-white opacity-60 dark:border-zinc-600 dark:bg-zinc-800"
+              }`}
+              aria-label={opt.label}
+              aria-pressed={preference === opt.key}
+            >
+              <span aria-hidden>{opt.emoji}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
+          Top allergens{" "}
+          <span className="font-normal text-gray-500 dark:text-zinc-400">
+            (tap to adjust)
+          </span>
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {ALLERGEN_OPTIONS.map((opt) => {
+            const selected = allergens.includes(opt.key);
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => toggleAllergen(opt.key)}
+                className={`min-h-[36px] rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  selected
+                    ? "border-orange-400 bg-orange-50 text-orange-800 dark:border-orange-600 dark:bg-orange-950/40 dark:text-orange-200"
+                    : "border-gray-200 bg-white text-gray-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                }`}
+                aria-pressed={selected}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-sm font-medium text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
+
+      <div className="flex gap-2 pt-2">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="min-h-[44px] flex-1 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="min-h-[44px] rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-zinc-300"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );

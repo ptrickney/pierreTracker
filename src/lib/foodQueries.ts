@@ -116,6 +116,104 @@ export async function updateFoodCategory(
   return mapFood(data as Record<string, unknown>);
 }
 
+export type UpdateFoodFieldsParams = {
+  name?: string;
+  category?: FoodCategory;
+  allergens?: AllergenKey[];
+};
+
+export async function updateFoodFields(
+  foodId: string,
+  params: UpdateFoodFieldsParams
+): Promise<FoodRow> {
+  const patch: Record<string, unknown> = {};
+  if (params.name !== undefined) {
+    const trimmed = params.name.trim();
+    if (!trimmed) throw new Error("Food name is required");
+    patch.name = trimmed;
+    patch.name_key = normalizeFoodNameKey(trimmed);
+  }
+  if (params.category !== undefined) patch.category = params.category;
+  if (params.allergens !== undefined) patch.allergens = params.allergens;
+  if (Object.keys(patch).length === 0) {
+    const { data, error } = await getSupabase()
+      .from("foods")
+      .select("*")
+      .eq("id", foodId)
+      .single();
+    if (error) throw error;
+    return mapFood(data as Record<string, unknown>);
+  }
+
+  const { data, error } = await getSupabase()
+    .from("foods")
+    .update(patch)
+    .eq("id", foodId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapFood(data as Record<string, unknown>);
+}
+
+export type EditSolidFoodExposureParams = {
+  exposureId: string;
+  name: string;
+  category: FoodCategory;
+  preference: FoodPreference;
+  allergens: AllergenKey[];
+};
+
+/**
+ * Persist an exposure edit: resolve food by name (reuse or create),
+ * apply category/allergens on that food, update preference + food_id on the exposure.
+ */
+export async function editSolidFoodExposure(
+  params: EditSolidFoodExposureParams
+): Promise<{ food: FoodRow; exposure: FoodExposureRow }> {
+  const trimmed = params.name.trim();
+  if (!trimmed) throw new Error("Food name is required");
+  const nameKey = normalizeFoodNameKey(trimmed);
+  const existing = await findFoodByNameKey(nameKey);
+
+  let food: FoodRow;
+  if (existing) {
+    food = await updateFoodFields(existing.id, {
+      name: trimmed,
+      category: params.category,
+      allergens: params.allergens,
+    });
+  } else {
+    const { data, error } = await getSupabase()
+      .from("foods")
+      .insert({
+        name: trimmed,
+        name_key: nameKey,
+        category: params.category,
+        allergens: params.allergens,
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+    food = mapFood(data as Record<string, unknown>);
+  }
+
+  const { data, error } = await getSupabase()
+    .from("food_exposures")
+    .update({
+      food_id: food.id,
+      preference: params.preference,
+    })
+    .eq("id", params.exposureId)
+    .select("*")
+    .single();
+  if (error) throw error;
+
+  return {
+    food,
+    exposure: mapExposure(data as Record<string, unknown>),
+  };
+}
+
 export type InsertFoodExposureParams = {
   food_id: string;
   timestamp: string;
@@ -372,4 +470,19 @@ export async function logSolidFood(
     comment: params.comment,
   });
   return { food, exposure };
+}
+
+/** Exposures in [start, endExclusive) for solids trend charts. */
+export async function fetchSolidTrendExposures(window: {
+  start: Date;
+  endExclusive: Date;
+}): Promise<FoodExposureRow[]> {
+  const { data, error } = await getSupabase()
+    .from("food_exposures")
+    .select("*")
+    .gte("timestamp", window.start.toISOString())
+    .lt("timestamp", window.endExclusive.toISOString())
+    .order("timestamp", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r) => mapExposure(r as Record<string, unknown>));
 }
