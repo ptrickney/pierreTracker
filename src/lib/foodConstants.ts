@@ -50,6 +50,64 @@ export function categoryMeta(category: FoodCategory) {
   );
 }
 
+/**
+ * Per-category tints for grouping food lists. Tailwind needs whole class
+ * names, so each variant is spelled out rather than composed at runtime.
+ */
+export const CATEGORY_STYLES: Record<
+  FoodCategory,
+  { panel: string; header: string; badge: string }
+> = {
+  vegetables: {
+    panel:
+      "border-emerald-300 bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40",
+    header:
+      "border-emerald-300 bg-emerald-200/80 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-100",
+    badge:
+      "bg-white/80 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-100",
+  },
+  fruits: {
+    panel:
+      "border-rose-300 bg-rose-100 dark:border-rose-800 dark:bg-rose-950/40",
+    header:
+      "border-rose-300 bg-rose-200/80 text-rose-950 dark:border-rose-800 dark:bg-rose-950/70 dark:text-rose-100",
+    badge: "bg-white/80 text-rose-800 dark:bg-rose-950 dark:text-rose-100",
+  },
+  proteins: {
+    panel:
+      "border-orange-300 bg-orange-100 dark:border-orange-800 dark:bg-orange-950/40",
+    header:
+      "border-orange-300 bg-orange-200/80 text-orange-950 dark:border-orange-800 dark:bg-orange-950/70 dark:text-orange-100",
+    badge:
+      "bg-white/80 text-orange-800 dark:bg-orange-950 dark:text-orange-100",
+  },
+  grains: {
+    panel:
+      "border-amber-300 bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40",
+    header:
+      "border-amber-300 bg-amber-200/80 text-amber-950 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-100",
+    badge: "bg-white/80 text-amber-800 dark:bg-amber-950 dark:text-amber-100",
+  },
+  dairy: {
+    panel:
+      "border-sky-300 bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40",
+    header:
+      "border-sky-300 bg-sky-200/80 text-sky-950 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-100",
+    badge: "bg-white/80 text-sky-800 dark:bg-sky-950 dark:text-sky-100",
+  },
+  other: {
+    panel:
+      "border-slate-300 bg-slate-200 dark:border-zinc-600 dark:bg-zinc-800/70",
+    header:
+      "border-slate-300 bg-slate-300/80 text-slate-950 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100",
+    badge: "bg-white/80 text-slate-800 dark:bg-zinc-900 dark:text-zinc-100",
+  },
+};
+
+export function categoryStyles(category: FoodCategory) {
+  return CATEGORY_STYLES[category] ?? CATEGORY_STYLES.other;
+}
+
 /** Whole-word / phrase match against a normalized food name key. */
 function nameContainsPhrase(nameKey: string, phrase: string): boolean {
   if (!nameKey || !phrase) return false;

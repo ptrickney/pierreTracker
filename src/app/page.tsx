@@ -8,6 +8,7 @@ import TodaySummary from "@/components/TodaySummary";
 import RecentActivity from "@/components/RecentActivity";
 import FeedingTrendChart from "@/components/FeedingTrendChart";
 import DiaperTrendChart from "@/components/DiaperTrendChart";
+import SolidsTrendChart from "@/components/SolidsTrendChart";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
   fetchTodayLogs,
@@ -125,10 +126,11 @@ export default function Home() {
         ) : (
           <div className="space-y-8">
             <ActivityLogger onLogSaved={refetch} />
-            <FoodPassport refreshKey={passportKey} />
+            <FoodPassport refreshKey={passportKey} onChanged={refetch} />
             <TodaySummary logs={logs ?? []} lastFeed={lastFeed} />
             <FeedingTrendChart />
             <DiaperTrendChart />
+            <SolidsTrendChart refreshKey={passportKey} />
             <RecentActivity
               recentItems={recentItems ?? []}
               onDelete={handleDeleteActivity}
