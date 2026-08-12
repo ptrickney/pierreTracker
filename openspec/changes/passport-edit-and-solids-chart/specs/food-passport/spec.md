@@ -20,12 +20,17 @@ Explore Passport and Food Detail SHALL render as full-screen overlays that cover
 
 ### Requirement: Visually distinct category groups in Explore Passport
 
-Explore Passport SHALL render each food category as a visually contained group (for example a shaded, bordered panel with its own header) so adjacent categories are distinguishable at a glance. Each group header SHALL show the category label and its food count, and the foods in the group SHALL be visually nested inside that group.
+Explore Passport SHALL render each food category as a visually contained group (a tinted, bordered panel with its own header) so adjacent categories are distinguishable at a glance. Each category SHALL have its own color tint that remains legible in both light and dark themes. Each group header SHALL show the category label and its food count, and the foods in the group SHALL be visually nested inside that group.
 
 #### Scenario: Adjacent categories are distinguishable
 
 - **WHEN** the passport shows Vegetables and Fruits with foods in each
-- **THEN** each category’s foods appear inside a distinct shaded container with that category’s header and count
+- **THEN** each category’s foods appear inside a distinct color-tinted container with that category’s header and count
+
+#### Scenario: Tints stay legible in dark mode
+
+- **WHEN** the passport is viewed with the dark theme active
+- **THEN** every category panel renders a dark tint with readable text
 
 ### Requirement: Passport stats are labeled
 

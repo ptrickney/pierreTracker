@@ -22,6 +22,7 @@ import {
   ALLERGEN_OPTIONS,
   CATEGORY_OPTIONS,
   categoryMeta,
+  categoryStyles,
   inferAllergens,
   PREFERENCE_OPTIONS,
   preferenceEmoji,
@@ -318,17 +319,20 @@ function ExplorePassportModal({
                 const list = byCategory.get(cat) ?? [];
                 if (list.length === 0) return null;
                 const meta = categoryMeta(cat);
+                const styles = categoryStyles(cat);
                 return (
                   <section
                     key={cat}
-                    className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800/40"
+                    className={`overflow-hidden rounded-2xl border ${styles.panel}`}
                   >
-                    <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2.5 dark:border-zinc-700 dark:bg-zinc-800/80">
+                    <div
+                      className={`flex items-center gap-2 border-b px-3 py-2.5 ${styles.header}`}
+                    >
                       <span aria-hidden>{meta.emoji}</span>
-                      <h4 className="font-semibold text-gray-900 dark:text-zinc-50">
-                        {meta.label}
-                      </h4>
-                      <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                      <h4 className="font-semibold">{meta.label}</h4>
+                      <span
+                        className={`ml-auto rounded-full px-2 py-0.5 text-xs font-semibold ${styles.badge}`}
+                      >
                         {list.length} food{list.length === 1 ? "" : "s"}
                       </span>
                     </div>
