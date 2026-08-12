@@ -61,31 +61,16 @@ function formatTriedDateTime(iso: string): string {
 /** Prevent the dashboard from scrolling while a passport overlay is open. */
 function useLockBodyScroll() {
   useEffect(() => {
-    const { body } = document;
-    const scrollY = window.scrollY;
-    const previous = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width,
-    };
-
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.width = "100%";
-
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      body.style.overflow = previous.overflow;
-      body.style.position = previous.position;
-      body.style.top = previous.top;
-      body.style.width = previous.width;
-      window.scrollTo(0, scrollY);
+      document.body.style.overflow = previousOverflow;
     };
   }, []);
 }
 
-const overlayShellClassName =
+const overlayBackdropClassName = "fixed inset-0 z-50 bg-black/50";
+const overlayPanelClassName =
   "fixed inset-0 z-50 flex flex-col overflow-hidden bg-white dark:bg-zinc-900";
 
 export default function FoodPassport({
@@ -273,12 +258,14 @@ function ExplorePassportModal({
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Pierre's Food Passport"
-      className={overlayShellClassName}
-    >
+    <>
+      <div className={overlayBackdropClassName} aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Pierre's Food Passport"
+        className={overlayPanelClassName}
+      >
       <div className="mx-auto flex h-full w-full max-w-lg flex-col">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] dark:border-zinc-700">
           <div>
@@ -375,7 +362,8 @@ function ExplorePassportModal({
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -472,12 +460,14 @@ function FoodDetailModal({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Food detail"
-      className={overlayShellClassName}
-    >
+    <>
+      <div className={overlayBackdropClassName} aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Food detail"
+        className={overlayPanelClassName}
+      >
       <div className="mx-auto flex h-full w-full max-w-lg flex-col">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] dark:border-zinc-700">
           <div className="min-w-0">
@@ -701,7 +691,8 @@ function FoodDetailModal({
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

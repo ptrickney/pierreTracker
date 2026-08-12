@@ -60,46 +60,46 @@ export const CATEGORY_STYLES: Record<
 > = {
   vegetables: {
     panel:
-      "border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/20",
+      "border-emerald-300 bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40",
     header:
-      "border-emerald-200 bg-emerald-100 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/50 dark:text-emerald-100",
+      "border-emerald-300 bg-emerald-200/80 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-100",
     badge:
       "bg-white/80 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-100",
   },
   fruits: {
     panel:
-      "border-rose-200 bg-rose-50 dark:border-rose-900/60 dark:bg-rose-950/20",
+      "border-rose-300 bg-rose-100 dark:border-rose-800 dark:bg-rose-950/40",
     header:
-      "border-rose-200 bg-rose-100 text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/50 dark:text-rose-100",
+      "border-rose-300 bg-rose-200/80 text-rose-950 dark:border-rose-800 dark:bg-rose-950/70 dark:text-rose-100",
     badge: "bg-white/80 text-rose-800 dark:bg-rose-950 dark:text-rose-100",
   },
   proteins: {
     panel:
-      "border-orange-200 bg-orange-50 dark:border-orange-900/60 dark:bg-orange-950/20",
+      "border-orange-300 bg-orange-100 dark:border-orange-800 dark:bg-orange-950/40",
     header:
-      "border-orange-200 bg-orange-100 text-orange-900 dark:border-orange-900/60 dark:bg-orange-950/50 dark:text-orange-100",
+      "border-orange-300 bg-orange-200/80 text-orange-950 dark:border-orange-800 dark:bg-orange-950/70 dark:text-orange-100",
     badge:
       "bg-white/80 text-orange-800 dark:bg-orange-950 dark:text-orange-100",
   },
   grains: {
     panel:
-      "border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/20",
+      "border-amber-300 bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40",
     header:
-      "border-amber-200 bg-amber-100 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-100",
+      "border-amber-300 bg-amber-200/80 text-amber-950 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-100",
     badge: "bg-white/80 text-amber-800 dark:bg-amber-950 dark:text-amber-100",
   },
   dairy: {
     panel:
-      "border-sky-200 bg-sky-50 dark:border-sky-900/60 dark:bg-sky-950/20",
+      "border-sky-300 bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40",
     header:
-      "border-sky-200 bg-sky-100 text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/50 dark:text-sky-100",
+      "border-sky-300 bg-sky-200/80 text-sky-950 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-100",
     badge: "bg-white/80 text-sky-800 dark:bg-sky-950 dark:text-sky-100",
   },
   other: {
     panel:
-      "border-slate-200 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800/40",
+      "border-slate-300 bg-slate-200 dark:border-zinc-600 dark:bg-zinc-800/70",
     header:
-      "border-slate-200 bg-slate-200 text-slate-900 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-100",
+      "border-slate-300 bg-slate-300/80 text-slate-950 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100",
     badge: "bg-white/80 text-slate-800 dark:bg-zinc-900 dark:text-zinc-100",
   },
 };
