@@ -64,9 +64,8 @@ export default function EventRow({
 
   if (item.source === "solid") {
     typeLabel = "Solid Food";
-    const parts = [
-      `${preferenceEmoji(item.preference)} ${item.food_name}`,
-    ];
+    const emoji = preferenceEmoji(item.preference);
+    const parts = [emoji ? `${emoji} ${item.food_name}` : item.food_name];
     if (item.had_reaction) parts.push("Reaction");
     if (item.comment) parts.push(item.comment);
     detailLine = parts.join(" · ");

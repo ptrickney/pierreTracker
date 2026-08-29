@@ -1,6 +1,6 @@
 import { getSupabase } from "./supabase";
-import { inferFoodCategory, normalizeFoodNameKey } from "./foodConstants";
-import { ALLERGEN_KEYS } from "@/types/food";
+import { inferAllergens, inferFoodCategory, normalizeFoodNameKey } from "./foodConstants";
+import { ALLERGEN_KEYS, FOOD_PREFERENCES } from "@/types/food";
 import type {
   AllergenKey,
   FoodCategory,
@@ -30,12 +30,19 @@ function mapFood(row: Record<string, unknown>): FoodRow {
   };
 }
 
+function asPreference(value: unknown): FoodPreference | null {
+  if (typeof value !== "string") return null;
+  return (FOOD_PREFERENCES as readonly string[]).includes(value)
+    ? (value as FoodPreference)
+    : null;
+}
+
 function mapExposure(row: Record<string, unknown>): FoodExposureRow {
   return {
     id: String(row.id),
     food_id: String(row.food_id),
     timestamp: String(row.timestamp),
-    preference: row.preference as FoodPreference,
+    preference: asPreference(row.preference),
     had_reaction: Boolean(row.had_reaction),
     reaction_notes:
       row.reaction_notes == null ? null : String(row.reaction_notes),
@@ -62,31 +69,14 @@ export type UpsertFoodParams = {
   category?: FoodCategory;
 };
 
-/** Finds by name_key or creates; optionally updates allergens/category on existing. */
+/** Finds by name_key or creates. Logging must not overwrite allergens on an existing food. */
 export async function upsertFood(params: UpsertFoodParams): Promise<FoodRow> {
   const trimmed = params.name.trim();
   if (!trimmed) throw new Error("Food name is required");
   const nameKey = normalizeFoodNameKey(trimmed);
   const existing = await findFoodByNameKey(nameKey);
 
-  if (existing) {
-    const nextAllergens = params.allergens ?? existing.allergens;
-    // Never overwrite an existing food's category from logging; only allergen tags may update.
-    const nextCategory = existing.category;
-    const allergensChanged =
-      JSON.stringify([...nextAllergens].sort()) !==
-      JSON.stringify([...existing.allergens].sort());
-    if (!allergensChanged) return existing;
-
-    const { data, error } = await getSupabase()
-      .from("foods")
-      .update({ allergens: nextAllergens, category: nextCategory })
-      .eq("id", existing.id)
-      .select("*")
-      .single();
-    if (error) throw error;
-    return mapFood(data as Record<string, unknown>);
-  }
+  if (existing) return existing;
 
   const { data, error } = await getSupabase()
     .from("foods")
@@ -159,7 +149,7 @@ export type EditSolidFoodExposureParams = {
   exposureId: string;
   name: string;
   category: FoodCategory;
-  preference: FoodPreference;
+  preference: FoodPreference | null;
   allergens: AllergenKey[];
 };
 
@@ -217,7 +207,7 @@ export async function editSolidFoodExposure(
 export type InsertFoodExposureParams = {
   food_id: string;
   timestamp: string;
-  preference: FoodPreference;
+  preference: FoodPreference | null;
   had_reaction?: boolean;
   reaction_notes?: string | null;
   comment?: string | null;
@@ -445,31 +435,66 @@ export async function fetchRecentFoodExposures(
 export type LogSolidFoodParams = {
   name: string;
   timestamp: string;
-  preference: FoodPreference;
+  preference: FoodPreference | null;
   allergens?: AllergenKey[];
   category?: FoodCategory;
-  had_reaction?: boolean;
-  reaction_notes?: string | null;
   comment?: string | null;
 };
+
+export type PendingSolidFood = {
+  name: string;
+  preference: FoodPreference | null;
+};
+
+export class PartialSolidLogError extends Error {
+  loggedCount: number;
+  constructor(message: string, loggedCount: number) {
+    super(message);
+    this.name = "PartialSolidLogError";
+    this.loggedCount = loggedCount;
+  }
+}
+
+export async function logSolidFoods(params: {
+  foods: PendingSolidFood[];
+  timestamp: string;
+  comment: string | null;
+}): Promise<{ food: FoodRow; exposure: FoodExposureRow }[]> {
+  const logged: { food: FoodRow; exposure: FoodExposureRow }[] = [];
+  for (const item of params.foods) {
+    try {
+      const existing = await findFoodByNameKey(normalizeFoodNameKey(item.name));
+      const food = existing
+        ? existing
+        : await upsertFood({
+            name: item.name,
+            allergens: inferAllergens(item.name),
+          });
+      const exposure = await insertFoodExposure({
+        food_id: food.id,
+        timestamp: params.timestamp,
+        preference: item.preference,
+        had_reaction: false,
+        comment: params.comment,
+      });
+      logged.push({ food, exposure });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to log food";
+      throw new PartialSolidLogError(message, logged.length);
+    }
+  }
+  return logged;
+}
 
 export async function logSolidFood(
   params: LogSolidFoodParams
 ): Promise<{ food: FoodRow; exposure: FoodExposureRow }> {
-  const food = await upsertFood({
-    name: params.name,
-    allergens: params.allergens,
-    category: params.category,
-  });
-  const exposure = await insertFoodExposure({
-    food_id: food.id,
+  const [result] = await logSolidFoods({
+    foods: [{ name: params.name, preference: params.preference }],
     timestamp: params.timestamp,
-    preference: params.preference,
-    had_reaction: params.had_reaction,
-    reaction_notes: params.reaction_notes,
-    comment: params.comment,
+    comment: params.comment ?? null,
   });
-  return { food, exposure };
+  return result;
 }
 
 /** Exposures in [start, endExclusive) for solids trend charts. */

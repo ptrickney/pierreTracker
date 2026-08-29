@@ -17,7 +17,7 @@ export type SolidActivityItem = {
   timestamp: string;
   food_id: string;
   food_name: string;
-  preference: FoodPreference;
+  preference: FoodPreference | null;
   had_reaction: boolean;
   reaction_notes: string | null;
   comment: string | null;

@@ -40,7 +40,7 @@ export type FoodExposureRow = {
   id: string;
   food_id: string;
   timestamp: string;
-  preference: FoodPreference;
+  preference: FoodPreference | null;
   had_reaction: boolean;
   reaction_notes: string | null;
   comment: string | null;
@@ -56,7 +56,7 @@ export type PassportFoodSummary = {
   name: string;
   category: FoodCategory;
   allergens: AllergenKey[];
-  latestPreference: FoodPreference;
+  latestPreference: FoodPreference | null;
   latestTimestamp: string;
   firstTriedTimestamp: string;
   hasReaction: boolean;

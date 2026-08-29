@@ -37,10 +37,11 @@ export function normalizeFoodNameKey(name: string): string {
   return name.trim().toLowerCase();
 }
 
-export function preferenceEmoji(preference: FoodPreference): string {
-  return (
-    PREFERENCE_OPTIONS.find((o) => o.key === preference)?.emoji ?? "😐"
-  );
+export function preferenceEmoji(
+  preference: FoodPreference | null | undefined
+): string {
+  if (!preference) return "";
+  return PREFERENCE_OPTIONS.find((o) => o.key === preference)?.emoji ?? "";
 }
 
 export function categoryMeta(category: FoodCategory) {
