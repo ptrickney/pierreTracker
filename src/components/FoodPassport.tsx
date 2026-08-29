@@ -188,7 +188,11 @@ export default function FoodPassport({
                       : "bg-white/20 text-white backdrop-blur-sm"
                   }`}
                 >
-                  <span aria-hidden>{preferenceEmoji(food.latestPreference)}</span>
+                  {preferenceEmoji(food.latestPreference) ? (
+                    <span aria-hidden>
+                      {preferenceEmoji(food.latestPreference)}
+                    </span>
+                  ) : null}
                   {food.name}
                   {food.hasReaction && (
                     <span className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-red-600">
@@ -346,9 +350,11 @@ function ExplorePassportModal({
                               >
                                 <div className="min-w-0">
                                   <p className="font-semibold text-gray-900 dark:text-zinc-50">
-                                    <span aria-hidden className="mr-1.5">
-                                      {preferenceEmoji(food.latestPreference)}
-                                    </span>
+                                    {preferenceEmoji(food.latestPreference) ? (
+                                      <span aria-hidden className="mr-1.5">
+                                        {preferenceEmoji(food.latestPreference)}
+                                      </span>
+                                    ) : null}
                                     {food.name}
                                   </p>
                                   <p className="text-xs text-gray-500 dark:text-zinc-400">
@@ -602,9 +608,15 @@ function FoodDetailModal({
                   >
                     <div>
                       <p className="font-semibold text-gray-900 dark:text-zinc-50">
-                        <span aria-hidden className="mr-1.5">
-                          {preferenceEmoji(exp.preference)}
-                        </span>
+                        {exp.preference ? (
+                          <span aria-hidden className="mr-1.5">
+                            {preferenceEmoji(exp.preference)}
+                          </span>
+                        ) : (
+                          <span className="mr-1.5 text-sm font-medium text-gray-500 dark:text-zinc-400">
+                            Unrated
+                          </span>
+                        )}
                         {formatTriedDateTime(exp.timestamp)}
                       </p>
                       {exp.comment && (
@@ -724,7 +736,7 @@ function EditExposureForm({
 }) {
   const [foodName, setFoodName] = useState(food.name);
   const [category, setCategory] = useState<FoodCategory>(food.category);
-  const [preference, setPreference] = useState<FoodPreference>(
+  const [preference, setPreference] = useState<FoodPreference | null>(
     exposure.preference
   );
   const [allergens, setAllergens] = useState<AllergenKey[]>(food.allergens);
@@ -862,14 +874,21 @@ function EditExposureForm({
 
       <div>
         <p className="mb-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
-          Preference
+          Preference{" "}
+          <span className="font-normal text-gray-500 dark:text-zinc-400">
+            optional
+          </span>
         </p>
         <div className="grid grid-cols-4 gap-2">
           {PREFERENCE_OPTIONS.map((opt) => (
             <button
               key={opt.key}
               type="button"
-              onClick={() => setPreference(opt.key)}
+              onClick={() =>
+                setPreference((current) =>
+                  current === opt.key ? null : opt.key
+                )
+              }
               className={`flex min-h-[52px] flex-col items-center justify-center rounded-xl border text-2xl transition ${
                 preference === opt.key
                   ? "border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/50"

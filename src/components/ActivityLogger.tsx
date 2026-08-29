@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Plus, X, Clock, Calendar, UtensilsCrossed, AlertCircle } from "lucide-react";
+import { Plus, X, Clock, Calendar, UtensilsCrossed } from "lucide-react";
 import { insertLog, buildTimestamp } from "@/lib/queries";
-import { logSolidFood, searchFoodsByName } from "@/lib/foodQueries";
 import {
-  ALLERGEN_OPTIONS,
+  logSolidFoods,
+  PartialSolidLogError,
+  searchFoodsByName,
+} from "@/lib/foodQueries";
+import {
   PREFERENCE_OPTIONS,
-  inferAllergens,
+  normalizeFoodNameKey,
+  preferenceEmoji,
 } from "@/lib/foodConstants";
 import {
   getDefaultEventTime,
@@ -16,7 +20,7 @@ import {
   parseDateString,
 } from "@/lib/timeUtils";
 import DirtyDiaperCelebration from "@/components/DirtyDiaperCelebration";
-import type { AllergenKey, FoodPreference, FoodRow } from "@/types/food";
+import type { FoodPreference, FoodRow } from "@/types/food";
 
 const FEED_MIN = 0;
 const FEED_MAX = 500;
@@ -24,6 +28,13 @@ const FEED_STEP = 10;
 const FEED_DEFAULT = 200;
 
 const timeOptions = generateTimeOptions();
+
+type PendingFood = {
+  id: string;
+  name: string;
+  nameKey: string;
+  preference: FoodPreference | null;
+};
 
 export type ActivityLoggerProps = {
   onLogSaved?: () => void;
@@ -41,28 +52,29 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
   const [dirtyBurstKey, setDirtyBurstKey] = useState(0);
 
   const [foodName, setFoodName] = useState("");
-  const [preference, setPreference] = useState<FoodPreference>("neutral");
-  const [allergens, setAllergens] = useState<AllergenKey[]>([]);
+  const [pendingFoods, setPendingFoods] = useState<PendingFood[]>([]);
+  const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
   const [comment, setComment] = useState("");
-  const [reportReaction, setReportReaction] = useState(false);
-  const [reactionNotes, setReactionNotes] = useState("");
   const [foodError, setFoodError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<FoodRow[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const skipNextAllergenInfer = useRef(false);
+
+  const selectedFood =
+    pendingFoods.find((f) => f.id === selectedFoodId) ?? null;
+  const typedKey = normalizeFoodNameKey(foodName);
+  const exactSuggestion = suggestions.find((f) => f.name_key === typedKey);
+  const showAddNew =
+    Boolean(typedKey) && !exactSuggestion && !pendingFoods.some((f) => f.nameKey === typedKey);
 
   const resetSolidsForm = useCallback(() => {
     setFoodName("");
-    setPreference("neutral");
-    setAllergens([]);
+    setPendingFoods([]);
+    setSelectedFoodId(null);
     setComment("");
-    setReportReaction(false);
-    setReactionNotes("");
     setFoodError(null);
     setSuggestions([]);
     setShowSuggestions(false);
-    skipNextAllergenInfer.current = false;
   }, []);
 
   const resetForm = useCallback(() => {
@@ -99,14 +111,6 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
     };
   }, [foodName]);
 
-  useEffect(() => {
-    if (skipNextAllergenInfer.current) {
-      skipNextAllergenInfer.current = false;
-      return;
-    }
-    setAllergens(inferAllergens(foodName));
-  }, [foodName]);
-
   const handleCancel = () => {
     resetForm();
     setIsOpen(false);
@@ -117,6 +121,50 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
     setIsOpen(false);
     onLogSaved?.();
   }, [onLogSaved, resetForm]);
+
+  const addPendingFood = useCallback(
+    (name: string, displayName?: string) => {
+      const trimmed = (displayName ?? name).trim();
+      if (!trimmed) return;
+      const nameKey = normalizeFoodNameKey(trimmed);
+      if (pendingFoods.some((f) => f.nameKey === nameKey)) {
+        setFoodError("Already added");
+        setShowSuggestions(false);
+        return;
+      }
+      const item: PendingFood = {
+        id: crypto.randomUUID(),
+        name: trimmed,
+        nameKey,
+        preference: null,
+      };
+      setPendingFoods((prev) => [...prev, item]);
+      setSelectedFoodId(item.id);
+      setFoodName("");
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setFoodError(null);
+    },
+    [pendingFoods]
+  );
+
+  const removePendingFood = (id: string) => {
+    setPendingFoods((prev) => {
+      const next = prev.filter((f) => f.id !== id);
+      setSelectedFoodId((current) => {
+        if (current !== id) return current;
+        return next.length > 0 ? next[next.length - 1].id : null;
+      });
+      return next;
+    });
+  };
+
+  const setPendingPreference = (preference: FoodPreference | null) => {
+    if (!selectedFoodId) return;
+    setPendingFoods((prev) =>
+      prev.map((f) => (f.id === selectedFoodId ? { ...f, preference } : f))
+    );
+  };
 
   const handleLogFeed = async () => {
     setFeedSubmitting(true);
@@ -135,23 +183,33 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
   };
 
   const handleLogSolid = async () => {
-    if (!foodName.trim()) {
-      setFoodError("Enter what he ate");
+    if (pendingFoods.length === 0) {
+      setFoodError("Add at least one food");
       return;
     }
     setFoodError(null);
     setFeedSubmitting(true);
     try {
-      await logSolidFood({
-        name: foodName,
+      await logSolidFoods({
+        foods: pendingFoods.map((f) => ({
+          name: f.name,
+          preference: f.preference,
+        })),
         timestamp: buildTimestamp(parseDateString(eventDate), eventTime),
-        preference,
-        allergens,
-        had_reaction: reportReaction,
-        reaction_notes: reportReaction ? reactionNotes.trim() || null : null,
         comment: comment.trim() || null,
       });
       handleLogSaved();
+    } catch (e) {
+      if (e instanceof PartialSolidLogError && e.loggedCount > 0) {
+        const remaining = pendingFoods.slice(e.loggedCount);
+        setPendingFoods(remaining);
+        setSelectedFoodId((current) => {
+          if (remaining.some((f) => f.id === current)) return current;
+          return remaining.length > 0 ? remaining[remaining.length - 1].id : null;
+        });
+        onLogSaved?.();
+      }
+      setFoodError(e instanceof Error ? e.message : "Failed to log foods");
     } finally {
       setFeedSubmitting(false);
     }
@@ -177,24 +235,15 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
     }
   };
 
-  const toggleAllergen = (key: AllergenKey) => {
-    setAllergens((prev) =>
-      prev.includes(key) ? prev.filter((a) => a !== key) : [...prev, key]
-    );
-  };
-
-  const selectSuggestion = (food: FoodRow) => {
-    skipNextAllergenInfer.current = true;
-    setFoodName(food.name);
-    setAllergens(
-      food.allergens.length > 0 ? food.allergens : inferAllergens(food.name)
-    );
-    setShowSuggestions(false);
-  };
-
   const isBackdate = eventDate !== getTodayDateString();
   const atMin = feedAmount <= FEED_MIN;
   const atMax = feedAmount >= FEED_MAX;
+  const logLabel =
+    pendingFoods.length === 1
+      ? "Log 1 food"
+      : pendingFoods.length > 1
+        ? `Log ${pendingFoods.length} foods`
+        : "Log foods";
 
   return (
     <div className="mb-6">
@@ -360,9 +409,85 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                 </>
               ) : (
                 <>
+                  {pendingFoods.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {pendingFoods.map((food) => {
+                        const selected = food.id === selectedFoodId;
+                        const emoji = preferenceEmoji(food.preference);
+                        return (
+                          <span
+                            key={food.id}
+                            className={`inline-flex min-h-[36px] items-center gap-1 rounded-full border pl-3 pr-1 text-sm ${
+                              selected
+                                ? "border-orange-400 bg-orange-50 dark:border-orange-600 dark:bg-orange-950/40"
+                                : food.preference
+                                  ? "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/40"
+                                  : "border-gray-200 bg-white dark:border-zinc-600 dark:bg-zinc-800"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setSelectedFoodId(food.id)}
+                              className="max-w-[10rem] truncate py-1 text-left font-medium text-gray-800 dark:text-zinc-100"
+                              aria-pressed={selected}
+                            >
+                              {food.name}
+                              {emoji ? ` ${emoji}` : ""}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removePendingFood(food.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                              aria-label={`Remove ${food.name}`}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {selectedFood && (
+                    <div className="rounded-xl border border-orange-200 bg-white p-3 dark:border-orange-900/50 dark:bg-zinc-800">
+                      <p className="mb-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
+                        How did {selectedFood.name.toLowerCase()} go?{" "}
+                        <span className="font-normal text-gray-500 dark:text-zinc-400">
+                          optional
+                        </span>
+                      </p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {PREFERENCE_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() =>
+                              setPendingPreference(
+                                selectedFood.preference === opt.key
+                                  ? null
+                                  : opt.key
+                              )
+                            }
+                            className={`flex min-h-[52px] flex-col items-center justify-center rounded-xl border text-2xl transition ${
+                              selectedFood.preference === opt.key
+                                ? "border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/50"
+                                : "border-gray-200 bg-white opacity-60 dark:border-zinc-600 dark:bg-zinc-800"
+                            }`}
+                            aria-label={opt.label}
+                            aria-pressed={selectedFood.preference === opt.key}
+                          >
+                            <span aria-hidden>{opt.emoji}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="relative">
                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
-                      What did he eat?
+                      {pendingFoods.length === 0
+                        ? "What did he eat?"
+                        : "Add another food"}
                     </label>
                     <input
                       type="text"
@@ -376,85 +501,59 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                       onBlur={() => {
                         setTimeout(() => setShowSuggestions(false), 150);
                       }}
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter") return;
+                        e.preventDefault();
+                        if (exactSuggestion) {
+                          addPendingFood(exactSuggestion.name);
+                        } else if (foodName.trim()) {
+                          addPendingFood(foodName);
+                        }
+                      }}
                       placeholder="e.g. Avocado, Salmon, Peanut Butter"
                       className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       aria-label="Food name"
                       autoComplete="off"
                     />
-                    {showSuggestions && suggestions.length > 0 && (
-                      <ul className="absolute z-20 mt-1 max-h-40 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-800">
-                        {suggestions.map((food) => (
-                          <li key={food.id}>
-                            <button
-                              type="button"
-                              className="flex w-full min-h-[44px] items-center px-3 py-2 text-left text-sm text-gray-800 hover:bg-orange-50 dark:text-zinc-100 dark:hover:bg-zinc-700"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => selectSuggestion(food)}
-                            >
-                              {food.name}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    {showSuggestions &&
+                      (suggestions.length > 0 || showAddNew) && (
+                        <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-800">
+                          {showAddNew && (
+                            <li>
+                              <button
+                                type="button"
+                                className="flex w-full min-h-[44px] items-center px-3 py-2 text-left text-sm font-semibold text-orange-800 hover:bg-orange-50 dark:text-orange-200 dark:hover:bg-zinc-700"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => addPendingFood(foodName)}
+                              >
+                                Add “{foodName.trim()}”
+                              </button>
+                            </li>
+                          )}
+                          {suggestions.map((food) => (
+                            <li key={food.id}>
+                              <button
+                                type="button"
+                                className="flex w-full min-h-[44px] items-center px-3 py-2 text-left text-sm text-gray-800 hover:bg-orange-50 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => addPendingFood(food.name)}
+                              >
+                                {food.name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     {foodError && (
                       <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
                         {foodError}
                       </p>
                     )}
-                  </div>
-
-                  <div>
-                    <p className="mb-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
-                      Preference
-                    </p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {PREFERENCE_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.key}
-                          type="button"
-                          onClick={() => setPreference(opt.key)}
-                          className={`flex min-h-[52px] flex-col items-center justify-center rounded-xl border text-2xl transition ${
-                            preference === opt.key
-                              ? "border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/50"
-                              : "border-gray-200 bg-white opacity-60 dark:border-zinc-600 dark:bg-zinc-800"
-                          }`}
-                          aria-label={opt.label}
-                          aria-pressed={preference === opt.key}
-                        >
-                          <span aria-hidden>{opt.emoji}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="mb-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
-                      Top allergens{" "}
-                      <span className="font-normal text-gray-500 dark:text-zinc-400">
-                        (auto from name — tap to adjust)
-                      </span>
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {ALLERGEN_OPTIONS.map((opt) => {
-                        const selected = allergens.includes(opt.key);
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => toggleAllergen(opt.key)}
-                            className={`min-h-[36px] rounded-full border px-3 py-1 text-xs font-medium transition ${
-                              selected
-                                ? "border-orange-400 bg-orange-50 text-orange-800 dark:border-orange-600 dark:bg-orange-950/40 dark:text-orange-200"
-                                : "border-gray-200 bg-white text-gray-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
-                            }`}
-                            aria-pressed={selected}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {pendingFoods.length === 0 && !foodError && (
+                      <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                        Add foods one by one. Rating is optional.
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -470,43 +569,6 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                     />
                   </div>
 
-                  {!reportReaction ? (
-                    <button
-                      type="button"
-                      onClick={() => setReportReaction(true)}
-                      className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
-                    >
-                      <AlertCircle className="h-4 w-4" />
-                      Report Reaction
-                    </button>
-                  ) : (
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/30">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="flex items-center gap-1.5 text-sm font-semibold text-red-800 dark:text-red-200">
-                          <AlertCircle className="h-4 w-4" />
-                          Allergic Reaction Logged
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setReportReaction(false);
-                            setReactionNotes("");
-                          }}
-                          className="text-xs font-medium text-red-700 underline dark:text-red-300"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                      <textarea
-                        value={reactionNotes}
-                        onChange={(e) => setReactionNotes(e.target.value)}
-                        rows={3}
-                        placeholder="When did it start? What are the symptoms?"
-                        className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-red-900/40 dark:bg-zinc-900 dark:text-zinc-100"
-                      />
-                    </div>
-                  )}
-
                   <button
                     type="button"
                     onClick={handleLogSolid}
@@ -514,7 +576,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                     className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 font-bold text-white shadow transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <UtensilsCrossed className="h-4 w-4" />
-                    Log Solid Food
+                    {logLabel}
                   </button>
                 </>
               )}
