@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import EventRow from "./EventRow";
 import { fetchRecentActivity, RECENT_LOGS_PAGE_SIZE } from "@/lib/queries";
+import { useI18n } from "@/lib/i18n";
 import type { ActivityItem } from "@/types/activity";
 
 function itemKey(item: ActivityItem): string {
@@ -17,6 +18,7 @@ export default function RecentActivity({
   recentItems: ActivityItem[];
   onDelete?: (item: ActivityItem) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [allItems, setAllItems] = useState<ActivityItem[]>(recentItems);
   const [hasMore, setHasMore] = useState(
     recentItems.length >= RECENT_LOGS_PAGE_SIZE
@@ -77,12 +79,12 @@ export default function RecentActivity({
   return (
     <section>
       <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-zinc-50">
-        Recent Activity
+        {t.timeline.title}
       </h2>
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
         {deduped.length === 0 ? (
           <p className="py-8 text-center text-gray-500 dark:text-zinc-400">
-            No recent events
+            {t.timeline.empty}
           </p>
         ) : (
           <div className="divide-y divide-gray-100 px-4 dark:divide-zinc-700">
@@ -107,12 +109,12 @@ export default function RecentActivity({
               {loadingMore ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading…
+                  {t.common.loading}
                 </>
               ) : (
                 <>
                   <ChevronDown className="h-4 w-4" />
-                  View More
+                  {t.timeline.viewMore}
                 </>
               )}
             </button>

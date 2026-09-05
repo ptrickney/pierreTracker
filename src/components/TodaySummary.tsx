@@ -1,31 +1,11 @@
 "use client";
 
 import { Clock, Baby, Moon, Droplets } from "lucide-react";
+import { formatEventTime, useI18n } from "@/lib/i18n";
 import type { LogRow } from "@/types/log";
 
-function isToday(iso: string): boolean {
-  const d = new Date(iso);
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
-}
-
-function formatFeedTime(iso: string): string {
-  const d = new Date(iso);
-  const time = d.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-  if (isToday(iso)) return time;
-  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${date}, ${time}`;
-}
-
 function LastFeedCard({ lastFeed }: { lastFeed: LogRow | null }) {
+  const { t, locale } = useI18n();
   return (
     <div className="rounded-xl bg-blue-500 p-4 text-white shadow-sm dark:bg-blue-600 md:col-span-1">
       <div className="flex items-center gap-3">
@@ -34,11 +14,13 @@ function LastFeedCard({ lastFeed }: { lastFeed: LogRow | null }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium uppercase tracking-wide opacity-90">
-            Last Feed
+            {t.summary.lastFeed}
           </p>
           {lastFeed ? (
             <>
-              <p className="text-xl font-bold">{formatFeedTime(lastFeed.timestamp)}</p>
+              <p className="text-xl font-bold">
+                {formatEventTime(lastFeed.timestamp, locale)}
+              </p>
               <p className="text-sm opacity-90">
                 {lastFeed.amount} {lastFeed.unit}
               </p>
@@ -98,23 +80,24 @@ export default function TodaySummary({
   logs: LogRow[];
   lastFeed: LogRow | null;
 }) {
+  const { t } = useI18n();
   const feeds = logs.filter((l) => l.action_type === "feed");
   const sleep = logs.filter((l) => l.action_type === "sleep");
   const diapers = logs.filter((l) => l.action_type === "diaper");
   const fedTotal = feeds.reduce((s, l) => s + Number(l.amount), 0);
   const sleptTotal = sleep.reduce((s, l) => s + Number(l.amount), 0);
   const unitFeed = feeds[0]?.unit ?? "oz";
-  const unitSleep = sleep[0]?.unit ?? "hrs";
+  const unitSleep = sleep[0]?.unit ?? t.summary.sleepUnitFallback;
 
   return (
     <section>
       <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-zinc-50">
-        Today&apos;s Summary
+        {t.summary.title}
       </h2>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <LastFeedCard lastFeed={lastFeed} />
         <StatCard
-          label="Fed Today"
+          label={t.summary.fedToday}
           value={fedTotal || "0"}
           unit={unitFeed}
           icon={Baby}
@@ -122,7 +105,7 @@ export default function TodaySummary({
           iconColor="text-blue-600 dark:text-blue-300"
         />
         <StatCard
-          label="Slept Today"
+          label={t.summary.sleptToday}
           value={sleptTotal || "0"}
           unit={unitSleep}
           icon={Moon}
@@ -130,9 +113,9 @@ export default function TodaySummary({
           iconColor="text-purple-600 dark:text-purple-300"
         />
         <StatCard
-          label="Diapers Today"
+          label={t.summary.diapersToday}
           value={diapers.length || "0"}
-          unit="chgs"
+          unit={t.summary.diaperUnit}
           icon={Droplets}
           iconBg="bg-green-100"
           iconColor="text-green-600 dark:text-green-300"

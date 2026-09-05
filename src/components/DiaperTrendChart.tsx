@@ -26,31 +26,34 @@ import {
   type TrendWindow,
 } from "@/lib/trendWindow";
 import { useEffectiveDark } from "@/components/ThemeProvider";
+import { formatNumber, useI18n, type Locale } from "@/lib/i18n";
 import type { LogRow } from "@/types/log";
 
 type DayDiaperRow = { day: string; wet: number; dirty: number; average: number };
 type DiaperCounts = { wet: number; dirty: number };
 
-const TITLE = "Diaper Changes (7 Days)";
 const navButtonClassName =
   "min-h-[36px] rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800";
 
-function formatAverage(value: number): string {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
-}
-
-function aggregateDiapersByDay(logs: LogRow[], window: TrendWindow): DayDiaperRow[] {
+function aggregateDiapersByDay(
+  logs: LogRow[],
+  window: TrendWindow,
+  locale: Locale
+): DayDiaperRow[] {
   const byDate = new Map<string, DiaperCounts>();
   const lookbackStart = getTrendLookbackStart(window.start);
   const daysToCover = TREND_WINDOW_DAYS * 2 - 1;
 
   for (let i = 0; i < daysToCover; i++) {
-    byDate.set(formatDayLabel(addLocalDays(lookbackStart, i)), { wet: 0, dirty: 0 });
+    byDate.set(formatDayLabel(addLocalDays(lookbackStart, i), locale), {
+      wet: 0,
+      dirty: 0,
+    });
   }
 
   for (const log of logs) {
     if (log.action_type !== "diaper") continue;
-    const key = formatDayLabel(new Date(log.timestamp));
+    const key = formatDayLabel(new Date(log.timestamp), locale);
     const bucket = byDate.get(key);
     if (!bucket) continue;
     if (log.unit === "dirty") bucket.dirty += 1;
@@ -59,11 +62,11 @@ function aggregateDiapersByDay(logs: LogRow[], window: TrendWindow): DayDiaperRo
 
   return Array.from({ length: TREND_WINDOW_DAYS }, (_, index) => {
     const date = addLocalDays(window.start, index);
-    const day = formatDayLabel(date);
+    const day = formatDayLabel(date, locale);
     const counts = byDate.get(day) ?? { wet: 0, dirty: 0 };
     const rollingValues = Array.from({ length: TREND_WINDOW_DAYS }, (_, rollingIndex) => {
       const rollingDate = addLocalDays(date, rollingIndex - (TREND_WINDOW_DAYS - 1));
-      const rollingCounts = byDate.get(formatDayLabel(rollingDate));
+      const rollingCounts = byDate.get(formatDayLabel(rollingDate, locale));
       return (rollingCounts?.wet ?? 0) + (rollingCounts?.dirty ?? 0);
     });
 
@@ -78,12 +81,13 @@ function aggregateDiapersByDay(logs: LogRow[], window: TrendWindow): DayDiaperRo
 
 export default function DiaperTrendChart() {
   const isDark = useEffectiveDark();
+  const { t, locale } = useI18n();
   const [windowEndDate, setWindowEndDate] = useState(() => getTrendWindow().endDate);
   const [data, setData] = useState<DayDiaperRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const trendWindow = getTrendWindow(windowEndDate);
+  const trendWindow = getTrendWindow(windowEndDate, locale);
   const canGoNext = canGoNextTrendWindow(windowEndDate);
   const currentAverage = data.at(-1)?.average ?? 0;
   const wetAverage = calculateSevenDayAverage(data.map((row) => row.wet));
@@ -119,10 +123,11 @@ export default function DiaperTrendChart() {
     setError(null);
     fetchDiaperTrendLogs(queryWindow)
       .then((logs) => {
-        if (!cancelled) setData(aggregateDiapersByDay(logs, window));
+        if (!cancelled) setData(aggregateDiapersByDay(logs, window, locale));
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+        // Empty string sentinel → translated fallback at render time
+        if (!cancelled) setError(e instanceof Error ? e.message : "");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -130,14 +135,14 @@ export default function DiaperTrendChart() {
     return () => {
       cancelled = true;
     };
-  }, [windowEndDate]);
+  }, [windowEndDate, locale]);
 
   return (
     <section>
       <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-50">
-            {TITLE}
+            {t.charts.diaperTitle}
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
             {trendWindow.label}
@@ -149,7 +154,7 @@ export default function DiaperTrendChart() {
             className={navButtonClassName}
             onClick={() => setWindowEndDate(getPreviousTrendWindowEnd(windowEndDate))}
           >
-            Previous day
+            {t.charts.previousDay}
           </button>
           <button
             type="button"
@@ -157,7 +162,7 @@ export default function DiaperTrendChart() {
             onClick={() => setWindowEndDate(getNextTrendWindowEnd(windowEndDate))}
             disabled={!canGoNext}
           >
-            Next day
+            {t.charts.nextDay}
           </button>
           <button
             type="button"
@@ -165,14 +170,16 @@ export default function DiaperTrendChart() {
             onClick={() => setWindowEndDate(getTrendWindow().endDate)}
             disabled={!canGoNext}
           >
-            Today
+            {t.charts.today}
           </button>
         </div>
       </div>
 
-      {error ? (
+      {error !== null ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
-          <p className="text-center text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-center text-red-600 dark:text-red-400">
+            {error || t.common.failedToLoad}
+          </p>
         </div>
       ) : loading ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
@@ -181,7 +188,11 @@ export default function DiaperTrendChart() {
       ) : (
         <>
           <p className="mb-3 text-sm text-gray-500 dark:text-zinc-400">
-            Stacked bars show wet and dirty changes. Running 7-day average: {formatAverage(currentAverage)} changes/day ({formatAverage(wetAverage)} wet, {formatAverage(dirtyAverage)} dirty).
+            {t.charts.diaperAverage(
+              formatNumber(currentAverage, locale),
+              formatNumber(wetAverage, locale),
+              formatNumber(dirtyAverage, locale)
+            )}
           </p>
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
             <ResponsiveContainer width="100%" height={300}>
@@ -198,13 +209,13 @@ export default function DiaperTrendChart() {
                   dataKey="wet"
                   stackId="diapers"
                   fill={wetFill}
-                  name="Wet"
+                  name={t.charts.wet}
                 />
                 <Bar
                   dataKey="dirty"
                   stackId="diapers"
                   fill={dirtyFill}
-                  name="Dirty"
+                  name={t.charts.dirty}
                 />
                 <Line
                   type="monotone"
@@ -212,7 +223,7 @@ export default function DiaperTrendChart() {
                   stroke={averageStroke}
                   strokeWidth={2}
                   dot={false}
-                  name="7-day avg"
+                  name={t.charts.sevenDayAvg}
                 />
               </ComposedChart>
             </ResponsiveContainer>

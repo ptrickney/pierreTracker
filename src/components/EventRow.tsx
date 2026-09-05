@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Clock, Baby, Moon, Droplets, Trash2, Loader2, UtensilsCrossed } from "lucide-react";
 import { preferenceEmoji } from "@/lib/foodConstants";
+import { formatEventTime, useI18n } from "@/lib/i18n";
 import type { ActivityItem } from "@/types/activity";
 
 const LOG_ICONS = {
@@ -22,28 +23,6 @@ const LOG_COLORS = {
 const SOLID_COLOR =
   "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-300 dark:ring-1 dark:ring-orange-800";
 
-function isToday(iso: string): boolean {
-  const d = new Date(iso);
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
-}
-
-function formatEventTime(iso: string): string {
-  const d = new Date(iso);
-  const time = d.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-  if (isToday(iso)) return time;
-  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${date}, ${time}`;
-}
-
 export default function EventRow({
   item,
   onDelete,
@@ -53,6 +32,7 @@ export default function EventRow({
   onDelete?: (item: ActivityItem) => Promise<void>;
   deleting?: boolean;
 }) {
+  const { t, locale } = useI18n();
   const handleDelete = () => {
     if (onDelete && !deleting) onDelete(item);
   };
@@ -63,10 +43,10 @@ export default function EventRow({
   let color: string;
 
   if (item.source === "solid") {
-    typeLabel = "Solid Food";
+    typeLabel = t.timeline.solidFood;
     const emoji = preferenceEmoji(item.preference);
     const parts = [emoji ? `${emoji} ${item.food_name}` : item.food_name];
-    if (item.had_reaction) parts.push("Reaction");
+    if (item.had_reaction) parts.push(t.timeline.reaction);
     if (item.comment) parts.push(item.comment);
     detailLine = parts.join(" · ");
     iconNode = <UtensilsCrossed className="h-4 w-4" />;
@@ -74,8 +54,7 @@ export default function EventRow({
   } else {
     const Icon = LOG_ICONS[item.action_type];
     color = LOG_COLORS[item.action_type];
-    typeLabel =
-      item.action_type.charAt(0).toUpperCase() + item.action_type.slice(1);
+    typeLabel = t.timeline[item.action_type];
     const amountUnit = `${item.amount} ${item.unit}`;
     detailLine = item.details
       ? `${amountUnit} | ${item.details}`
@@ -96,7 +75,7 @@ export default function EventRow({
       </div>
       <div className="flex shrink-0 items-center gap-1.5 text-sm text-gray-500 dark:text-zinc-500">
         <Clock className="h-4 w-4" />
-        {formatEventTime(item.timestamp)}
+        {formatEventTime(item.timestamp, locale)}
       </div>
       {onDelete && (
         <button
@@ -104,7 +83,7 @@ export default function EventRow({
           onClick={handleDelete}
           disabled={deleting}
           className="flex h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 items-center justify-center rounded-md text-gray-400 outline outline-1 outline-gray-300 hover:bg-gray-50 hover:text-gray-600 disabled:opacity-50 dark:text-zinc-500 dark:outline-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-          aria-label="Delete activity"
+          aria-label={t.timeline.deleteActivity}
         >
           {deleting ? (
             <Loader2 className="h-4 w-4 animate-spin" />

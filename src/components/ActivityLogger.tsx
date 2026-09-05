@@ -19,6 +19,7 @@ import {
   getTodayDateString,
   parseDateString,
 } from "@/lib/timeUtils";
+import { useI18n } from "@/lib/i18n";
 import DirtyDiaperCelebration from "@/components/DirtyDiaperCelebration";
 import type { FoodPreference, FoodRow } from "@/types/food";
 
@@ -41,6 +42,7 @@ export type ActivityLoggerProps = {
 };
 
 export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [eventDate, setEventDate] = useState(getTodayDateString);
   const [eventTime, setEventTime] = useState(getDefaultEventTime);
@@ -128,7 +130,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
       if (!trimmed) return;
       const nameKey = normalizeFoodNameKey(trimmed);
       if (pendingFoods.some((f) => f.nameKey === nameKey)) {
-        setFoodError("Already added");
+        setFoodError(t.logger.alreadyAdded);
         setShowSuggestions(false);
         return;
       }
@@ -145,7 +147,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
       setShowSuggestions(false);
       setFoodError(null);
     },
-    [pendingFoods]
+    [pendingFoods, t]
   );
 
   const removePendingFood = (id: string) => {
@@ -184,7 +186,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
 
   const handleLogSolid = async () => {
     if (pendingFoods.length === 0) {
-      setFoodError("Add at least one food");
+      setFoodError(t.logger.addAtLeastOneFood);
       return;
     }
     setFoodError(null);
@@ -209,7 +211,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
         });
         onLogSaved?.();
       }
-      setFoodError(e instanceof Error ? e.message : "Failed to log foods");
+      setFoodError(e instanceof Error ? e.message : t.logger.failedToLogFoods);
     } finally {
       setFeedSubmitting(false);
     }
@@ -238,12 +240,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
   const isBackdate = eventDate !== getTodayDateString();
   const atMin = feedAmount <= FEED_MIN;
   const atMax = feedAmount >= FEED_MAX;
-  const logLabel =
-    pendingFoods.length === 1
-      ? "Log 1 food"
-      : pendingFoods.length > 1
-        ? `Log ${pendingFoods.length} foods`
-        : "Log foods";
+  const logLabel = t.logger.logFoods(pendingFoods.length);
 
   return (
     <div className="mb-6">
@@ -261,7 +258,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950 dark:ring-1 dark:ring-blue-800">
           <Plus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         </span>
-        LOG ACTIVITY
+        {t.logger.logActivity}
       </button>
 
       <div
@@ -275,10 +272,10 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                 type="button"
                 onClick={handleCancel}
                 className="flex min-h-[44px] min-w-[44px] items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                aria-label="Cancel"
+                aria-label={t.logger.cancelAria}
               >
                 <X className="h-5 w-5" />
-                CANCEL
+                {t.logger.cancel}
               </button>
             </div>
 
@@ -287,7 +284,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                 <div className="flex-1">
                   <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
                     <Calendar className="h-4 w-4" />
-                    DATE:
+                    {t.logger.dateLabel}
                   </label>
                   <input
                     type="date"
@@ -295,19 +292,19 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                     max={getTodayDateString()}
                     onChange={(e) => setEventDate(e.target.value)}
                     className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-lg font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
-                    aria-label="Event date"
+                    aria-label={t.logger.eventDate}
                   />
                 </div>
                 <div className="flex-1">
                   <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
                     <Clock className="h-4 w-4" />
-                    TIME:
+                    {t.logger.timeLabel}
                   </label>
                   <select
                     value={eventTime}
                     onChange={(e) => setEventTime(e.target.value)}
                     className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-lg font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
-                    aria-label="Event time"
+                    aria-label={t.logger.eventTime}
                   >
                     {timeOptions.map((opt) => (
                       <option key={opt} value={opt}>
@@ -320,14 +317,14 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
 
               {isBackdate && (
                 <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                  Logging for a past date
+                  {t.logger.backdateNotice}
                 </p>
               )}
 
               <div
                 className="grid grid-cols-2 gap-1 rounded-xl border border-gray-200 bg-white p-1 dark:border-zinc-600 dark:bg-zinc-800"
                 role="tablist"
-                aria-label="Feeding type"
+                aria-label={t.logger.feedingType}
               >
                 <button
                   type="button"
@@ -341,7 +338,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                   }`}
                 >
                   <span aria-hidden>🍼</span>
-                  Bottle
+                  {t.logger.bottle}
                 </button>
                 <button
                   type="button"
@@ -355,7 +352,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                   }`}
                 >
                   <UtensilsCrossed className="h-4 w-4" />
-                  Solids
+                  {t.logger.solids}
                 </button>
               </div>
 
@@ -363,7 +360,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                 <>
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
-                      Feed amount
+                      {t.logger.feedAmount}
                     </label>
                     <div className="flex min-h-[44px] items-center gap-2">
                       <button
@@ -373,7 +370,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                         }
                         disabled={atMin}
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
-                        aria-label="Decrease amount"
+                        aria-label={t.logger.decreaseAmount}
                       >
                         −
                       </button>
@@ -390,7 +387,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                         }
                         disabled={atMax}
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
-                        aria-label="Increase amount"
+                        aria-label={t.logger.increaseAmount}
                       >
                         +
                       </button>
@@ -404,7 +401,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                     className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white shadow transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-500 dark:hover:bg-blue-400"
                   >
                     <span aria-hidden>🍼</span>
-                    Log Feed
+                    {t.logger.logFeed}
                   </button>
                 </>
               ) : (
@@ -438,7 +435,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                               type="button"
                               onClick={() => removePendingFood(food.id)}
                               className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                              aria-label={`Remove ${food.name}`}
+                              aria-label={t.logger.removeFood(food.name)}
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
@@ -451,9 +448,9 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                   {selectedFood && (
                     <div className="rounded-xl border border-orange-200 bg-white p-3 dark:border-orange-900/50 dark:bg-zinc-800">
                       <p className="mb-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
-                        How did {selectedFood.name.toLowerCase()} go?{" "}
+                        {t.logger.howDidItGo(selectedFood.name.toLowerCase())}{" "}
                         <span className="font-normal text-gray-500 dark:text-zinc-400">
-                          optional
+                          {t.common.optional}
                         </span>
                       </p>
                       <div className="grid grid-cols-4 gap-2">
@@ -473,7 +470,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                                 ? "border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/50"
                                 : "border-gray-200 bg-white opacity-60 dark:border-zinc-600 dark:bg-zinc-800"
                             }`}
-                            aria-label={opt.label}
+                            aria-label={t.preferences[opt.key]}
                             aria-pressed={selectedFood.preference === opt.key}
                           >
                             <span aria-hidden>{opt.emoji}</span>
@@ -486,8 +483,8 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                   <div className="relative">
                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
                       {pendingFoods.length === 0
-                        ? "What did he eat?"
-                        : "Add another food"}
+                        ? t.logger.whatDidHeEat
+                        : t.logger.addAnotherFood}
                     </label>
                     <input
                       type="text"
@@ -510,9 +507,9 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                           addPendingFood(foodName);
                         }
                       }}
-                      placeholder="e.g. Avocado, Salmon, Peanut Butter"
+                      placeholder={t.logger.foodPlaceholder}
                       className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                      aria-label="Food name"
+                      aria-label={t.logger.foodName}
                       autoComplete="off"
                     />
                     {showSuggestions &&
@@ -526,7 +523,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => addPendingFood(foodName)}
                               >
-                                Add “{foodName.trim()}”
+                                {t.logger.addFood(foodName.trim())}
                               </button>
                             </li>
                           )}
@@ -551,20 +548,20 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                     )}
                     {pendingFoods.length === 0 && !foodError && (
                       <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
-                        Add foods one by one. Rating is optional.
+                        {t.logger.addFoodsHint}
                       </p>
                     )}
                   </div>
 
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
-                      Comment (optional)
+                      {t.logger.commentOptional}
                     </label>
                     <textarea
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                       rows={2}
-                      placeholder="Texture, gagging, pairings…"
+                      placeholder={t.logger.commentPlaceholder}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                     />
                   </div>
@@ -589,7 +586,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                   className="flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-green-200 bg-green-50 px-3 py-2 font-medium text-green-800 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-green-800 dark:bg-green-950/50 dark:text-green-200 dark:hover:bg-green-900/40"
                 >
                   <span aria-hidden>💧</span>
-                  Wet
+                  {t.logger.wet}
                 </button>
                 <button
                   type="button"
@@ -598,7 +595,7 @@ export default function ActivityLogger({ onLogSaved }: ActivityLoggerProps) {
                   className="flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 font-medium text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/35"
                 >
                   <span aria-hidden>💩</span>
-                  Dirty
+                  {t.logger.dirty}
                 </button>
               </div>
             </div>

@@ -10,22 +10,16 @@ import FeedingTrendChart from "@/components/FeedingTrendChart";
 import DiaperTrendChart from "@/components/DiaperTrendChart";
 import SolidsTrendChart from "@/components/SolidsTrendChart";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import {
   fetchTodayLogs,
   fetchLastFeed,
   fetchRecentActivity,
   deleteActivityItem,
 } from "@/lib/queries";
+import { formatLongDate, useI18n } from "@/lib/i18n";
 import type { ActivityItem } from "@/types/activity";
 import type { LogRow } from "@/types/log";
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 function SectionSkeleton() {
   return (
@@ -37,6 +31,7 @@ function SectionSkeleton() {
 }
 
 export default function Home() {
+  const { t, locale } = useI18n();
   const [logs, setLogs] = useState<LogRow[] | null>(null);
   const [lastFeed, setLastFeed] = useState<LogRow | null>(null);
   const [recentItems, setRecentItems] = useState<ActivityItem[] | null>(null);
@@ -53,7 +48,7 @@ export default function Home() {
         setPassportKey((k) => k + 1);
       })
       .catch((e) => {
-        setError(e instanceof Error ? e.message : "Failed to load data");
+        setError(e instanceof Error ? e.message : t.common.failedToLoadData);
       });
   };
 
@@ -63,7 +58,7 @@ export default function Home() {
       setError(null);
       refetch();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete activity");
+      setError(e instanceof Error ? e.message : t.timeline.failedToDelete);
     }
   };
 
@@ -80,8 +75,8 @@ export default function Home() {
         }
       })
       .catch((e) => {
-        if (!cancelled)
-          setError(e instanceof Error ? e.message : "Failed to load data");
+        // Empty string sentinel → translated fallback at render time
+        if (!cancelled) setError(e instanceof Error ? e.message : "");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -97,13 +92,14 @@ export default function Home() {
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-50">
-              Pierre Tracker
+              {t.header.appName}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
-              {formatDate(new Date())}
+              {formatLongDate(new Date(), locale)}
             </p>
           </div>
           <div className="flex shrink-0 items-start gap-2">
+            <LanguageToggle />
             <ThemeToggle />
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950 dark:ring-1 dark:ring-blue-800">
               <Baby className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -111,9 +107,9 @@ export default function Home() {
           </div>
         </header>
 
-        {error && (
+        {error !== null && (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
-            {error}
+            {error || t.common.failedToLoadData}
           </div>
         )}
 
