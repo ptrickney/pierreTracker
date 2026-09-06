@@ -26,41 +26,36 @@ import {
   type TrendWindow,
 } from "@/lib/trendWindow";
 import { useEffectiveDark } from "@/components/ThemeProvider";
+import { formatNumber, useI18n, type Locale } from "@/lib/i18n";
 import type { FoodExposureRow } from "@/types/food";
 
 type DaySolidRow = { day: string; count: number; average: number };
 
-const TITLE = "Solid Foods (7 Days)";
 const navButtonClassName =
   "min-h-[36px] rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800";
 
-function formatAverage(value: number): string {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(
-    value
-  );
-}
-
 function aggregateSolidsByDay(
   exposures: FoodExposureRow[],
-  window: TrendWindow
+  window: TrendWindow,
+  locale: Locale
 ): DaySolidRow[] {
   const byDate = new Map<string, number>();
   const lookbackStart = getTrendLookbackStart(window.start);
   const daysToCover = TREND_WINDOW_DAYS * 2 - 1;
 
   for (let i = 0; i < daysToCover; i++) {
-    byDate.set(formatDayLabel(addLocalDays(lookbackStart, i)), 0);
+    byDate.set(formatDayLabel(addLocalDays(lookbackStart, i), locale), 0);
   }
 
   for (const exposure of exposures) {
-    const key = formatDayLabel(new Date(exposure.timestamp));
+    const key = formatDayLabel(new Date(exposure.timestamp), locale);
     if (!byDate.has(key)) continue;
     byDate.set(key, (byDate.get(key) ?? 0) + 1);
   }
 
   return Array.from({ length: TREND_WINDOW_DAYS }, (_, index) => {
     const date = addLocalDays(window.start, index);
-    const day = formatDayLabel(date);
+    const day = formatDayLabel(date, locale);
     const count = byDate.get(day) ?? 0;
     const rollingValues = Array.from(
       { length: TREND_WINDOW_DAYS },
@@ -69,7 +64,7 @@ function aggregateSolidsByDay(
           date,
           rollingIndex - (TREND_WINDOW_DAYS - 1)
         );
-        return byDate.get(formatDayLabel(rollingDate)) ?? 0;
+        return byDate.get(formatDayLabel(rollingDate, locale)) ?? 0;
       }
     );
 
@@ -87,6 +82,7 @@ export default function SolidsTrendChart({
   refreshKey?: number;
 }) {
   const isDark = useEffectiveDark();
+  const { t, locale } = useI18n();
   const [windowEndDate, setWindowEndDate] = useState(
     () => getTrendWindow().endDate
   );
@@ -94,7 +90,7 @@ export default function SolidsTrendChart({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const trendWindow = getTrendWindow(windowEndDate);
+  const trendWindow = getTrendWindow(windowEndDate, locale);
   const canGoNext = canGoNextTrendWindow(windowEndDate);
   const currentAverage = data.at(-1)?.average ?? 0;
 
@@ -127,11 +123,12 @@ export default function SolidsTrendChart({
     setError(null);
     fetchSolidTrendExposures(queryWindow)
       .then((exposures) => {
-        if (!cancelled) setData(aggregateSolidsByDay(exposures, window));
+        if (!cancelled)
+          setData(aggregateSolidsByDay(exposures, window, locale));
       })
       .catch((e) => {
-        if (!cancelled)
-          setError(e instanceof Error ? e.message : "Failed to load");
+        // Empty string sentinel → translated fallback at render time
+        if (!cancelled) setError(e instanceof Error ? e.message : "");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -139,14 +136,14 @@ export default function SolidsTrendChart({
     return () => {
       cancelled = true;
     };
-  }, [windowEndDate, refreshKey]);
+  }, [windowEndDate, refreshKey, locale]);
 
   return (
     <section>
       <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-50">
-            {TITLE}
+            {t.charts.solidsTitle}
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
             {trendWindow.label}
@@ -160,7 +157,7 @@ export default function SolidsTrendChart({
               setWindowEndDate(getPreviousTrendWindowEnd(windowEndDate))
             }
           >
-            Previous day
+            {t.charts.previousDay}
           </button>
           <button
             type="button"
@@ -170,7 +167,7 @@ export default function SolidsTrendChart({
             }
             disabled={!canGoNext}
           >
-            Next day
+            {t.charts.nextDay}
           </button>
           <button
             type="button"
@@ -178,14 +175,16 @@ export default function SolidsTrendChart({
             onClick={() => setWindowEndDate(getTrendWindow().endDate)}
             disabled={!canGoNext}
           >
-            Today
+            {t.charts.today}
           </button>
         </div>
       </div>
 
-      {error ? (
+      {error !== null ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
-          <p className="text-center text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-center text-red-600 dark:text-red-400">
+            {error || t.common.failedToLoad}
+          </p>
         </div>
       ) : loading ? (
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
@@ -194,8 +193,7 @@ export default function SolidsTrendChart({
       ) : (
         <>
           <p className="mb-3 text-sm text-gray-500 dark:text-zinc-400">
-            Bars show how many solid foods were logged each day. Running 7-day
-            average: {formatAverage(currentAverage)} foods/day.
+            {t.charts.solidsAverage(formatNumber(currentAverage, locale))}
           </p>
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-600 dark:bg-zinc-900">
             <ResponsiveContainer width="100%" height={300}>
@@ -211,14 +209,14 @@ export default function SolidsTrendChart({
                 />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ color: tickColor }} />
-                <Bar dataKey="count" fill={barFill} name="Solids" />
+                <Bar dataKey="count" fill={barFill} name={t.charts.solids} />
                 <Line
                   type="monotone"
                   dataKey="average"
                   stroke={averageStroke}
                   strokeWidth={2}
                   dot={false}
-                  name="7-day avg"
+                  name={t.charts.sevenDayAvg}
                 />
               </ComposedChart>
             </ResponsiveContainer>

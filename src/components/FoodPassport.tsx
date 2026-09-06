@@ -29,6 +29,11 @@ import {
   preferenceEmoji,
 } from "@/lib/foodConstants";
 import {
+  formatDateTime,
+  formatShortDate,
+  useI18n,
+} from "@/lib/i18n";
+import {
   FOOD_CATEGORIES,
   type AllergenKey,
   type FoodCategory,
@@ -39,25 +44,6 @@ import {
   type PassportFoodSummary,
   type PassportSummary,
 } from "@/types/food";
-
-function formatTriedDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatTriedDateTime(iso: string): string {
-  const d = new Date(iso);
-  return `${d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  })} · ${d.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  })}`;
-}
 
 /** Prevent the dashboard from scrolling while a passport overlay is open. */
 function useLockBodyScroll() {
@@ -87,6 +73,7 @@ export default function FoodPassport({
   refreshKey?: number;
   onChanged?: () => void;
 }) {
+  const { t } = useI18n();
   const [summary, setSummary] = useState<PassportSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +88,9 @@ export default function FoodPassport({
         setError(null);
       })
       .catch((e) => {
-        setError(e instanceof Error ? e.message : "Failed to load passport");
+        setError(
+          e instanceof Error ? e.message : t.passport.failedToLoadPassport
+        );
       })
       .finally(() => setLoading(false));
   };
@@ -135,27 +124,23 @@ export default function FoodPassport({
     <>
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 p-5 text-white shadow-sm">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-orange-50/90">
-          Milestone Tracker
+          {t.passport.milestoneTracker}
         </p>
         <h2 className="mt-1 flex items-center gap-2 text-xl font-bold">
           <BookOpen className="h-5 w-5" />
-          Pierre&apos;s Food Passport
+          {t.passport.title}
         </h2>
         {data.uniqueFoodCount === 0 ? (
-          <p className="mt-2 text-sm text-orange-50">
-            No solids logged yet — tap Log Activity → Solids to start.
-          </p>
+          <p className="mt-2 text-sm text-orange-50">{t.passport.empty}</p>
         ) : (
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
               <BookOpen className="h-3.5 w-3.5" aria-hidden />
-              {data.uniqueFoodCount} food
-              {data.uniqueFoodCount === 1 ? "" : "s"} introduced
+              {t.passport.foodsIntroduced(data.uniqueFoodCount)}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
               <Shield className="h-3.5 w-3.5" aria-hidden />
-              {data.allergensPassedCount} top allergen
-              {data.allergensPassedCount === 1 ? "" : "s"} passed
+              {t.passport.allergensPassed(data.allergensPassedCount)}
             </span>
           </div>
         )}
@@ -165,13 +150,13 @@ export default function FoodPassport({
           onClick={() => setExploreOpen(true)}
           className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-4 py-2.5 text-sm font-bold text-orange-600 shadow-sm transition hover:bg-orange-50"
         >
-          Explore Passport ›
+          {t.passport.explore}
         </button>
 
         {data.recentTried.length > 0 && (
           <div className="mt-4">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-orange-50/90">
-              Tried:
+              {t.passport.tried}
             </p>
             <div className="flex flex-wrap gap-2">
               {data.recentTried.map((food) => (
@@ -238,6 +223,7 @@ function ExplorePassportModal({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const { t, locale } = useI18n();
   const [detailId, setDetailId] = useState<string | null>(initialFoodId);
   useLockBodyScroll();
 
@@ -274,7 +260,7 @@ function ExplorePassportModal({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Pierre's Food Passport"
+          aria-label={t.passport.title}
           className="absolute inset-0 flex flex-col overflow-hidden bg-white dark:bg-zinc-900"
         >
           <div className="mx-auto flex h-full w-full max-w-lg flex-col">
@@ -282,18 +268,16 @@ function ExplorePassportModal({
               <div>
                 <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-zinc-50">
                   <BookOpen className="h-5 w-5 text-orange-500" />
-                  Pierre&apos;s Food Passport
+                  {t.passport.title}
                 </h3>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700 dark:bg-orange-950/40 dark:text-orange-200">
                     <BookOpen className="h-3.5 w-3.5" aria-hidden />
-                    {uniqueFoodCount} food
-                    {uniqueFoodCount === 1 ? "" : "s"} explored
+                    {t.passport.foodsExplored(uniqueFoodCount)}
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200">
                     <Shield className="h-3.5 w-3.5" aria-hidden />
-                    {allergensPassedCount} top allergen
-                    {allergensPassedCount === 1 ? "" : "s"} passed
+                    {t.passport.allergensPassed(allergensPassedCount)}
                   </span>
                 </div>
               </div>
@@ -301,7 +285,7 @@ function ExplorePassportModal({
                 type="button"
                 onClick={onClose}
                 className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800"
-                aria-label="Close"
+                aria-label={t.common.close}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -310,8 +294,7 @@ function ExplorePassportModal({
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {foods.length === 0 ? (
                 <p className="py-10 text-center text-sm text-gray-500 dark:text-zinc-400">
-                  No foods yet. Log a solid from Activity Logger to fill the
-                  passport.
+                  {t.passport.exploreEmpty}
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -329,11 +312,11 @@ function ExplorePassportModal({
                           className={`flex items-center gap-2 border-b px-3 py-2.5 ${styles.header}`}
                         >
                           <span aria-hidden>{meta.emoji}</span>
-                          <h4 className="font-semibold">{meta.label}</h4>
+                          <h4 className="font-semibold">{t.categories[cat]}</h4>
                           <span
                             className={`ml-auto rounded-full px-2 py-0.5 text-xs font-semibold ${styles.badge}`}
                           >
-                            {list.length} food{list.length === 1 ? "" : "s"}
+                            {t.passport.foodCount(list.length)}
                           </span>
                         </div>
                         <ul className="space-y-2 p-3">
@@ -358,13 +341,17 @@ function ExplorePassportModal({
                                     {food.name}
                                   </p>
                                   <p className="text-xs text-gray-500 dark:text-zinc-400">
-                                    Tried{" "}
-                                    {formatTriedDate(food.firstTriedTimestamp)}
+                                    {t.passport.triedOn(
+                                      formatShortDate(
+                                        food.firstTriedTimestamp,
+                                        locale
+                                      )
+                                    )}
                                   </p>
                                 </div>
                                 {food.hasReaction && (
                                   <span className="shrink-0 rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-200">
-                                    (!) Reaction
+                                    {t.passport.reactionBadge}
                                   </span>
                                 )}
                               </button>
@@ -397,6 +384,7 @@ function FoodDetailModal({
   onChanged: () => void;
   onNavigateToFood: (foodId: string) => void;
 }) {
+  const { t, locale } = useI18n();
   const [detail, setDetail] = useState<FoodDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -419,9 +407,8 @@ function FoodDetailModal({
         }
       })
       .catch((e) => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load food");
-        }
+        // Empty string sentinel → translated fallback at render time
+        if (!cancelled) setError(e instanceof Error ? e.message : "");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -439,7 +426,7 @@ function FoodDetailModal({
         setError(null);
       })
       .catch((e) => {
-        setError(e instanceof Error ? e.message : "Failed to load food");
+        setError(e instanceof Error ? e.message : t.passport.failedToLoadFood);
       })
       .finally(() => setLoading(false));
   };
@@ -470,7 +457,7 @@ function FoodDetailModal({
       reload();
       onChanged();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save");
+      setError(e instanceof Error ? e.message : t.common.failedToSave);
     } finally {
       setSaving(false);
     }
@@ -482,7 +469,7 @@ function FoodDetailModal({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Food detail"
+          aria-label={t.passport.foodDetail}
           className="absolute inset-0 flex flex-col overflow-hidden bg-white dark:bg-zinc-900"
         >
           <div className="mx-auto flex h-full w-full max-w-lg flex-col">
@@ -499,17 +486,19 @@ function FoodDetailModal({
                   }}
                   className="mb-2 text-sm font-medium text-blue-600 dark:text-blue-400"
                 >
-                  {editingExposure ? "← Back to history" : "← Back to passport"}
+                  {editingExposure
+                    ? t.passport.backToHistory
+                    : t.passport.backToPassport}
                 </button>
             <h3 className="text-lg font-bold text-gray-900 dark:text-zinc-50">
               {editingExposure
-                ? "Edit solid entry"
-                : (detail?.food.name ?? "Food")}
+                ? t.passport.editSolidEntry
+                : (detail?.food.name ?? t.passport.food)}
             </h3>
             {detail && !editingExposure && (
               <div className="mt-2 space-y-1">
                 <label className="block text-xs font-medium text-gray-500 dark:text-zinc-400">
-                  Category
+                  {t.passport.category}
                 </label>
                 <select
                   value={detail.food.category}
@@ -528,22 +517,24 @@ function FoodDetailModal({
                       setError(
                         err instanceof Error
                           ? err.message
-                          : "Failed to update category"
+                          : t.passport.failedToUpdateCategory
                       );
                     }
                   }}
                   className="min-h-[40px] rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                  aria-label="Food category"
+                  aria-label={t.passport.foodCategory}
                 >
                   {CATEGORY_OPTIONS.map((opt) => (
                     <option key={opt.key} value={opt.key}>
-                      {opt.emoji} {opt.label}
+                      {opt.emoji} {t.categories[opt.key]}
                     </option>
                   ))}
                 </select>
                 {detail.food.allergens.length > 0 && (
                   <p className="text-sm text-gray-500 dark:text-zinc-400">
-                    {detail.food.allergens.join(", ")}
+                    {detail.food.allergens
+                      .map((a) => t.allergens[a])
+                      .join(", ")}
                   </p>
                 )}
               </div>
@@ -553,7 +544,7 @@ function FoodDetailModal({
             type="button"
             onClick={onClose}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800"
-            aria-label="Close"
+            aria-label={t.common.close}
           >
             <X className="h-5 w-5" />
           </button>
@@ -576,12 +567,16 @@ function FoodDetailModal({
               }}
             />
           ) : loading && !detail ? (
-            <p className="py-8 text-center text-sm text-gray-500">Loading…</p>
-          ) : error && !detail ? (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="py-8 text-center text-sm text-gray-500">
+              {t.common.loading}
+            </p>
+          ) : error !== null && !detail ? (
+            <p className="text-sm text-red-600">
+              {error || t.passport.failedToLoadFood}
+            </p>
           ) : detail && detail.exposures.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">
-              No exposures yet.
+              {t.passport.noExposures}
             </p>
           ) : (
             <ul className="space-y-3">
@@ -614,10 +609,10 @@ function FoodDetailModal({
                           </span>
                         ) : (
                           <span className="mr-1.5 text-sm font-medium text-gray-500 dark:text-zinc-400">
-                            Unrated
+                            {t.passport.unrated}
                           </span>
                         )}
-                        {formatTriedDateTime(exp.timestamp)}
+                        {formatDateTime(exp.timestamp, locale)}
                       </p>
                       {exp.comment && (
                         <p className="mt-1 text-sm text-gray-600 dark:text-zinc-300">
@@ -626,13 +621,14 @@ function FoodDetailModal({
                       )}
                       {exp.had_reaction && (
                         <p className="mt-1 text-sm font-medium text-red-700 dark:text-red-300">
-                          Reaction: {exp.reaction_notes || "Logged"}
+                          {t.passport.reactionPrefix}{" "}
+                          {exp.reaction_notes || t.passport.reactionLogged}
                         </p>
                       )}
                     </div>
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-600 dark:bg-zinc-800 dark:text-zinc-300">
                       <Pencil className="h-3.5 w-3.5" />
-                      Edit
+                      {t.common.edit}
                     </span>
                   </button>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -649,7 +645,7 @@ function FoodDetailModal({
                         className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
                       >
                         <AlertCircle className="h-3.5 w-3.5" />
-                        Report reaction
+                        {t.passport.reportReaction}
                       </button>
                     )}
                     <button
@@ -660,7 +656,9 @@ function FoodDetailModal({
                       className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
                     >
                       <MessageSquare className="h-3.5 w-3.5" />
-                      {exp.comment ? "Edit comment" : "Add comment"}
+                      {exp.comment
+                        ? t.passport.editComment
+                        : t.passport.addComment}
                     </button>
                   </div>
 
@@ -673,7 +671,9 @@ function FoodDetailModal({
                       }`}
                     >
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-zinc-300">
-                        {mode === "reaction" ? "Reaction notes" : "Comment"}
+                        {mode === "reaction"
+                          ? t.passport.reactionNotes
+                          : t.passport.comment}
                       </p>
                       <textarea
                         value={draft}
@@ -682,8 +682,8 @@ function FoodDetailModal({
                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
                         placeholder={
                           mode === "reaction"
-                            ? "When did it start? What are the symptoms?"
-                            : "Notes unrelated to allergy…"
+                            ? t.passport.reactionPlaceholder
+                            : t.passport.commentPlaceholder
                         }
                       />
                       <div className="mt-2 flex gap-2">
@@ -693,7 +693,7 @@ function FoodDetailModal({
                           disabled={saving}
                           className="min-h-[40px] rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
                         >
-                          Save
+                          {t.common.save}
                         </button>
                         <button
                           type="button"
@@ -703,7 +703,7 @@ function FoodDetailModal({
                           }}
                           className="min-h-[40px] rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-zinc-300"
                         >
-                          Cancel
+                          {t.common.cancel}
                         </button>
                       </div>
                     </div>
@@ -734,6 +734,7 @@ function EditExposureForm({
     exposure: FoodExposureRow;
   }) => void;
 }) {
+  const { t, locale } = useI18n();
   const [foodName, setFoodName] = useState(food.name);
   const [category, setCategory] = useState<FoodCategory>(food.category);
   const [preference, setPreference] = useState<FoodPreference | null>(
@@ -789,7 +790,7 @@ function EditExposureForm({
 
   const handleSave = async () => {
     if (!foodName.trim()) {
-      setError("Enter what he ate");
+      setError(t.passport.enterWhatHeAte);
       return;
     }
     setError(null);
@@ -804,7 +805,7 @@ function EditExposureForm({
       });
       onSaved(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save");
+      setError(e instanceof Error ? e.message : t.common.failedToSave);
     } finally {
       setSaving(false);
     }
@@ -813,12 +814,12 @@ function EditExposureForm({
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-500 dark:text-zinc-400">
-        Logged {formatTriedDateTime(exposure.timestamp)}
+        {t.passport.loggedAt(formatDateTime(exposure.timestamp, locale))}
       </p>
 
       <div className="relative">
         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
-          Food
+          {t.passport.food}
         </label>
         <input
           type="text"
@@ -833,7 +834,7 @@ function EditExposureForm({
             setTimeout(() => setShowSuggestions(false), 150);
           }}
           className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-          aria-label="Food name"
+          aria-label={t.logger.foodName}
           autoComplete="off"
         />
         {showSuggestions && suggestions.length > 0 && (
@@ -856,17 +857,17 @@ function EditExposureForm({
 
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
-          Category
+          {t.passport.category}
         </label>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as FoodCategory)}
           className="min-h-[44px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-          aria-label="Food category"
+          aria-label={t.passport.foodCategory}
         >
           {CATEGORY_OPTIONS.map((opt) => (
             <option key={opt.key} value={opt.key}>
-              {opt.emoji} {opt.label}
+              {opt.emoji} {t.categories[opt.key]}
             </option>
           ))}
         </select>
@@ -874,9 +875,9 @@ function EditExposureForm({
 
       <div>
         <p className="mb-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
-          Preference{" "}
+          {t.passport.preference}{" "}
           <span className="font-normal text-gray-500 dark:text-zinc-400">
-            optional
+            {t.common.optional}
           </span>
         </p>
         <div className="grid grid-cols-4 gap-2">
@@ -894,7 +895,7 @@ function EditExposureForm({
                   ? "border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/50"
                   : "border-gray-200 bg-white opacity-60 dark:border-zinc-600 dark:bg-zinc-800"
               }`}
-              aria-label={opt.label}
+              aria-label={t.preferences[opt.key]}
               aria-pressed={preference === opt.key}
             >
               <span aria-hidden>{opt.emoji}</span>
@@ -905,9 +906,9 @@ function EditExposureForm({
 
       <div>
         <p className="mb-2 text-sm font-medium text-gray-700 dark:text-zinc-300">
-          Top allergens{" "}
+          {t.passport.topAllergens}{" "}
           <span className="font-normal text-gray-500 dark:text-zinc-400">
-            (tap to adjust)
+            {t.passport.tapToAdjust}
           </span>
         </p>
         <div className="flex flex-wrap gap-2">
@@ -925,7 +926,7 @@ function EditExposureForm({
                 }`}
                 aria-pressed={selected}
               >
-                {opt.label}
+                {t.allergens[opt.key]}
               </button>
             );
           })}
@@ -945,7 +946,7 @@ function EditExposureForm({
           disabled={saving}
           className="min-h-[44px] flex-1 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
         >
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? t.common.saving : t.passport.saveChanges}
         </button>
         <button
           type="button"
@@ -953,7 +954,7 @@ function EditExposureForm({
           disabled={saving}
           className="min-h-[44px] rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-zinc-300"
         >
-          Cancel
+          {t.common.cancel}
         </button>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "@/lib/i18n";
 
 type Particle = {
   angle: number;
@@ -40,6 +41,7 @@ export default function DirtyDiaperCelebration({
   burstKey,
   onFinished,
 }: DirtyDiaperCelebrationProps) {
+  const { t } = useI18n();
   const labelId = useId();
   const [mounted, setMounted] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -75,7 +77,7 @@ export default function DirtyDiaperCelebration({
       aria-labelledby={labelId}
     >
       <span id={labelId} className="sr-only">
-        Dirty diaper logged. Celebration animation playing.
+        {t.celebration.srAnnouncement}
       </span>
 
       {reduced ? (
@@ -84,7 +86,7 @@ export default function DirtyDiaperCelebration({
             💩
           </p>
           <p className="mt-2 text-lg font-bold text-amber-900 dark:text-amber-100">
-            He did it!
+            {t.celebration.heDidIt}
           </p>
         </div>
       ) : (
