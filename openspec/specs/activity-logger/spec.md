@@ -23,24 +23,24 @@ The expanded accordion SHALL display a "CANCEL" button with an "X" icon at the t
 - **WHEN** the user taps the "CANCEL" button while the accordion is expanded
 - **THEN** the accordion collapses, all form inputs reset to defaults, and only the "LOG ACTIVITY" button is visible
 
-### Requirement: Event time picker with 5-minute increments
+### Requirement: Event time picker with 15-minute increments
 
-The accordion SHALL display an "EVENT TIME" field showing a time value in `HH:MM` format (24-hour). The time SHALL be adjustable and SHALL only allow values in 5-minute increments (e.g., 15:50, 15:55, 16:00). The default value SHALL be the current time minus 15 minutes, rounded down to the nearest 5-minute mark.
+The accordion SHALL display an "EVENT TIME" field showing a time value in `HH:MM` format (24-hour). The time SHALL be adjustable and SHALL only allow values in 15-minute increments (e.g., 15:30, 15:45, 16:00). The default value SHALL be the current time minus 15 minutes, rounded down to the nearest 15-minute mark.
 
 #### Scenario: Default time on accordion open
 
 - **WHEN** the accordion expands at 16:07
-- **THEN** the time picker displays "15:50" (16:07 minus 15 minutes = 15:52, rounded down to nearest 5 = 15:50)
+- **THEN** the time picker displays "15:45" (16:07 minus 15 minutes = 15:52, rounded down to nearest 15 = 15:45)
 
-#### Scenario: Default time on accordion open (exact 5-minute boundary)
+#### Scenario: Default time on accordion open (exact 15-minute boundary)
 
 - **WHEN** the accordion expands at 16:15
-- **THEN** the time picker displays "16:00" (16:15 minus 15 minutes = 16:00, already on 5-minute boundary)
+- **THEN** the time picker displays "16:00" (16:15 minus 15 minutes = 16:00, already on 15-minute boundary)
 
 #### Scenario: Adjusting the time
 
 - **WHEN** the user interacts with the time picker
-- **THEN** only values on 5-minute increments are selectable
+- **THEN** only values on 15-minute increments are selectable
 
 ### Requirement: Feed amount stepper
 
